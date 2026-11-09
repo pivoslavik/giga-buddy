@@ -1,9 +1,10 @@
 package main
 
 import (
-	"fmt"
+	"github.com/pivoslavik/giga-buddy/server"
+	"log"
 )
 
 func main() {
-	fmt.Println("Your mom")
+	log.Fatal(server.Run())
 }

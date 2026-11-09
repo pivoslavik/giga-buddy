@@ -6,6 +6,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
 
   postgres:
     image: postgres:17
@@ -22,7 +28,7 @@ services:
       retries: 5
 
   nginx:
-    image: nginx:alpine
+    image: nginx:1.30.6-alpine
     ports:
       - "80:80"
     volumes:
@@ -32,7 +38,7 @@ services:
       frontend:
         condition: service_completed_successfully
       backend:
-        condition: service_started
+        condition: service_healthy
 
   frontend:
     build: ./frontend
