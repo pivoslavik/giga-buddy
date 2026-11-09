@@ -1,0 +1,59 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+!.env.*.example
+.venv/
+venv/
+env/
+
+# Go
+bin/
+*.exe
+*.test
+*.out
+coverage/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+
+# React / Vite
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.tsbuildinfo
+
+# ML data, models, and caches
+data/
+models/
+checkpoints/
+.cache/
+.ipynb_checkpoints/
+wandb/
+mlruns/
+*.pt
+*.pth
+*.onnx
+*.safetensors
+*.ckpt
+
+# Logs
+*.log
+
+# IDE and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
