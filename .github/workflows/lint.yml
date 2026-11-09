@@ -1,0 +1,63 @@
+name: Linter
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/react
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/react/package-lock.json
+
+      - run: npm ci
+
+      - run: npx eslint .
+
+      - run: npx prettier --check .
+
+  backend-go:
+    name: Backend Go
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - run: |
+          DIFF=$(gofmt -l .)
+          if [ -n "$DIFF" ]; then
+            echo "Unformatted Go files:"
+            echo "$DIFF"
+            exit 1
+          fi
+
+  backend-python:
+    name: Backend Python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - run: pip install black
+
+      - run: black --check .
+
