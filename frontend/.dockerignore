@@ -1,0 +1,15 @@
+.git
+.env
+.env.*
+node_modules
+dist
+dist-ssr
+.vite
+coverage
+*.tsbuildinfo
+*.log
+.idea
+.vscode
+.DS_Store
+Dockerfile*
+.dockerignore

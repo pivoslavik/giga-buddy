@@ -1,0 +1,14 @@
+.git
+.env
+.env.*
+bin
+coverage
+*.exe
+*.test
+*.out
+*.log
+.idea
+.vscode
+.DS_Store
+Dockerfile*
+.dockerignore
