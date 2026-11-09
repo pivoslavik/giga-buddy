@@ -6,7 +6,12 @@ import (
 )
 
 func Run() error {
-	router := gin.Default()
+	// setting up router
+	router := gin.New()
+	router.Use(gin.LoggerWithConfig(gin.LoggerConfig{
+		SkipPaths: []string{"/health"},
+	}))
+	router.Use(gin.Recovery())
 
 	// public routes
 	router.GET("/health", health.HandleHealth)
