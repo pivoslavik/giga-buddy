@@ -19,6 +19,8 @@ services:
     build: ./ml
     environment:
       DATABASE_URL: postgres://${DB_USER}:${DB_USER_PASSWORD}@postgres:5432/${DB_NAME}
+      ML_INFERENCE_WORKERS: "${ML_INFERENCE_WORKERS:-1}"
+      ML_INFERENCE_MAX_WAITING: "${ML_INFERENCE_MAX_WAITING:-2}"
     depends_on:
       migrator:
         condition: service_completed_successfully

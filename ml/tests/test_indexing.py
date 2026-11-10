@@ -23,6 +23,8 @@ def indexing(monkeypatch):
     loader = Mock(return_value=model)
 
     monkeypatch.setenv("DATABASE_URL", "test-dsn")
+    monkeypatch.setenv("ML_INFERENCE_WORKERS", "1")
+    monkeypatch.setenv("ML_INFERENCE_MAX_WAITING", "2")
     create_pool = Mock(return_value=pool)
     monkeypatch.setattr(main.asyncpg, "create_pool", create_pool)
     monkeypatch.setattr(embeddings, "load_model", loader)
@@ -129,3 +131,13 @@ def test_failed_inference_keeps_existing_chunks(indexing):
     assert client.post("/documents", json={"document_id": 42}).status_code == 500
     connection.transaction.assert_not_called()
     connection.execute.assert_not_called()
+
+
+def test_inference_overload_returns_503(indexing, monkeypatch):
+    client, connection, _, _ = indexing
+    encode = AsyncMock(side_effect=embeddings.InferenceUnavailable)
+    monkeypatch.setattr(embeddings.Embeddings, "encode", encode)
+    response = client.post("/documents", json={"document_id": 42})
+    assert response.status_code == 503
+    assert response.json() == {"detail": "Embedding inference is busy"}
+    connection.transaction.assert_not_called()

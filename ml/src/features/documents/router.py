@@ -8,7 +8,7 @@ from .processor import (
     DocumentNotFound,
     EmptyDocument,
 )
-from .embeddings import EmbeddingError
+from .embeddings import EmbeddingError, InferenceUnavailable
 from .schemas import IndexDocumentRequest, IndexDocumentResult
 
 logger = logging.getLogger(__name__)
@@ -28,6 +28,8 @@ async def index_document(
         raise HTTPException(422, "Document text is empty") from exc
     except DocumentChanged as exc:
         raise HTTPException(409, "Document changed during indexing") from exc
+    except InferenceUnavailable as exc:
+        raise HTTPException(503, "Embedding inference is busy") from exc
     except (
         OSError,
         asyncpg.PostgresConnectionError,
