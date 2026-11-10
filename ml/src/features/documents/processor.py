@@ -1,4 +1,4 @@
-from psycopg_pool import AsyncConnectionPool
+from asyncpg import Pool
 
 from .chunker import Chunker
 from .embeddings import Embeddings
@@ -18,15 +18,13 @@ class DocumentChanged(Exception):
 
 
 class DocumentProcessor:
-    def __init__(
-        self, pool: AsyncConnectionPool, chunker: Chunker, embeddings: Embeddings
-    ):
+    def __init__(self, pool: Pool, chunker: Chunker, embeddings: Embeddings):
         self._pool = pool
         self._chunker = chunker
         self._embeddings = embeddings
 
     async def process(self, document_id: int) -> int:
-        async with self._pool.connection() as conn:
+        async with self._pool.acquire(timeout=10) as conn:
             text = await get_document_text(conn, document_id)
         if text is None:
             raise DocumentNotFound
@@ -36,7 +34,7 @@ class DocumentProcessor:
             raise EmptyDocument
         vectors = await self._embeddings.encode(chunks)
 
-        async with self._pool.connection() as conn:
+        async with self._pool.acquire(timeout=10) as conn:
             async with conn.transaction():
                 current_text = await get_document_text(conn, document_id, lock=True)
                 if current_text is None:

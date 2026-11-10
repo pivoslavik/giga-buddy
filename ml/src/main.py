@@ -1,10 +1,9 @@
-import asyncio
 import os
 from contextlib import asynccontextmanager
 
+import asyncpg
 from fastapi import FastAPI
-from pgvector.psycopg import register_vector_async
-from psycopg_pool import AsyncConnectionPool
+from pgvector.asyncpg import register_vector
 
 from .features.documents.router import router
 from .features.documents.chunker import Chunker
@@ -14,16 +13,13 @@ from .features.documents.embeddings import Embeddings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    pool = AsyncConnectionPool(
+    async with asyncpg.create_pool(
         os.environ["DATABASE_URL"],
-        open=False,
         min_size=1,
         max_size=4,
-        kwargs={"autocommit": True},
-        configure=register_vector_async,
-    )
-    async with pool:
-        await pool.wait()
+        timeout=10,
+        init=register_vector,
+    ) as pool:
         embeddings = await Embeddings.load()
         try:
             app.state.document_processor = DocumentProcessor(
@@ -41,7 +37,4 @@ app.include_router(router)
 if __name__ == "__main__":
     import uvicorn
 
-    if os.name == "nt":
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
-    uvicorn.run(app, host="0.0.0.0", port=8000, loop="none")
+    uvicorn.run(app, host="0.0.0.0", port=8000)

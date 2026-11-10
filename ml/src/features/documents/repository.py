@@ -1,35 +1,32 @@
 import numpy as np
-from psycopg import AsyncConnection
+from asyncpg import Connection
 
 
 async def replace_document_chunks(
-    conn: AsyncConnection, document_id: int, chunks: list[str], vectors: np.ndarray
+    conn: Connection, document_id: int, chunks: list[str], vectors: np.ndarray
 ) -> None:
     """Replace chunks inside the caller's transaction with the document row locked."""
     rows = [
         (document_id, chunk, vector, index)
         for index, (chunk, vector) in enumerate(zip(chunks, vectors, strict=True))
     ]
-    async with conn.cursor() as cursor:
-        await cursor.execute(
-            "DELETE FROM document_chunks WHERE document_id = %s", (document_id,)
-        )
-        await cursor.executemany(
-            """
-            INSERT INTO document_chunks (document_id, content, embedding, chunk_index)
-            VALUES (%s, %s, %s, %s)
-            """,
-            rows,
-        )
+    await conn.execute(
+        "DELETE FROM document_chunks WHERE document_id = $1", document_id
+    )
+    await conn.executemany(
+        """
+        INSERT INTO document_chunks (document_id, content, embedding, chunk_index)
+        VALUES ($1, $2, $3, $4)
+        """,
+        rows,
+    )
 
 
 async def get_document_text(
-    conn: AsyncConnection, document_id: int, *, lock: bool = False
+    conn: Connection, document_id: int, *, lock: bool = False
 ) -> str | None:
-    query = "SELECT text FROM documents WHERE id = %s"
+    query = "SELECT text FROM documents WHERE id = $1"
     if lock:
         # Serialize chunk replacement for this document and protect the source text.
         query += " FOR UPDATE"
-    cursor = await conn.execute(query, (document_id,))
-    row = await cursor.fetchone()
-    return row[0] if row is not None else None
+    return await conn.fetchval(query, document_id)
