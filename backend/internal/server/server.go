@@ -59,7 +59,7 @@ func Run() error {
 	authCfg := auth.Config{
 		JWTSecret:         []byte(os.Getenv("JWT_SECRET")),
 		AccessTokenTTL:    15 * time.Minute,
-		RefreshTokenTTL:   30 * 24 * time.Hour,
+		RefreshTokenTTL:   7 * 24 * time.Hour,
 		CookieDomain:      os.Getenv("COOKIE_DOMAIN"),
 		CookieSecure:      os.Getenv("COOKIE_SECURE") == "true",
 		AccessCookieName:  "access_token",
