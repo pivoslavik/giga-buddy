@@ -23,6 +23,7 @@ describe("HeroIllustration", () => {
     const { scene } = renderScene()
 
     expect(scene).toHaveAttribute("aria-hidden", "true")
+    expect(scene.querySelector("img")).toHaveAttribute("alt", "")
   })
 
   it("follows a mouse pointer with the parallax variables", () => {

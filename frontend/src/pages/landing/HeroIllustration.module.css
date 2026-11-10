@@ -2,6 +2,9 @@
  * Everything inside is sized in container units, so the scene scales as one picture.
  * Each direct child is a layer: --depth sets how far it follows the pointer parallax,
  * --enter-delay staggers the entrance, --float-delay offsets the idle floating.
+ *
+ * Stacking from back to front: shapes, the AI chat and code cards, the character,
+ * the hint card and sparkles.
  */
 .scene {
   --parallax-x: 0;
@@ -41,22 +44,22 @@
   --depth: 0.6;
   --enter-delay: 0.1s;
 
-  left: 2%;
-  top: 30%;
-  width: 96%;
-  height: 50%;
+  left: 6%;
+  top: 14%;
+  width: 92%;
+  height: 72%;
   border: 0.5cqw solid var(--color-accent-green);
   border-radius: 50%;
-  rotate: -10deg;
+  rotate: -14deg;
 }
 
 .blobBlue {
   --depth: 1;
 
-  left: 12%;
-  top: 4%;
+  left: 9%;
+  top: 6%;
   width: 44%;
-  height: 68%;
+  height: 70%;
   border-radius: 58% 42% 46% 54% / 52% 44% 56% 48%;
   background: radial-gradient(circle at 30% 25%, #52c8ff, var(--color-accent-blue) 45%, #0088e6);
 }
@@ -65,16 +68,38 @@
   --depth: 1.4;
   --enter-delay: 0.15s;
 
-  right: 2%;
-  bottom: 2%;
+  left: 68%;
+  top: 64%;
   width: 28%;
-  height: 30%;
+  height: 32%;
   border-radius: 46% 54% 40% 60% / 60% 46% 54% 40%;
   background: radial-gradient(circle at 35% 30%, #b78ff7, var(--color-accent-purple) 50%, #7440d6);
   rotate: -18deg;
 }
 
+/* The intern: cropped at the scene bottom like in the design, the edge fades out softly */
+.character {
+  --depth: 1.6;
+
+  z-index: 1;
+  left: 0;
+  top: 17%;
+  bottom: 0;
+  width: 76%;
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, #000 84%, transparent);
+  animation: rise-in 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) 0.15s both;
+}
+
+.character img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: none;
+}
+
 .sparkle {
+  z-index: 2;
   color: var(--color-accent-green);
   filter: drop-shadow(0 0.6cqw 1cqw rgb(0 180 80 / 0.35));
   animation:
@@ -84,20 +109,20 @@
 
 .sparkleLarge {
   --depth: 2.5;
-  --enter-delay: 0.6s;
+  --enter-delay: 0.7s;
 
-  top: 1%;
-  right: 20%;
+  top: 2%;
+  left: 70%;
   width: 7cqw;
   height: 7cqw;
 }
 
 .sparkleSmall {
   --depth: 2;
-  --enter-delay: 0.75s;
+  --enter-delay: 0.85s;
 
-  top: 30%;
-  left: 4%;
+  top: 12%;
+  left: 6%;
   width: 4cqw;
   height: 4cqw;
   color: var(--color-accent-purple);
@@ -108,6 +133,7 @@
 .card {
   --card-edge: #c9b3f7;
 
+  z-index: 2;
   padding: 2.4cqw;
   border: 1px solid rgb(255 255 255 / 0.7);
   border-radius: 2.6cqw;
@@ -158,15 +184,16 @@
   width: 48%;
 }
 
-/* AI chat */
+/* AI chat: right where he is looking, his hair overlaps its corner */
 .aiChat {
   --depth: 3;
-  --enter-delay: 0.3s;
+  --enter-delay: 0.45s;
   --float-delay: -1s;
 
+  z-index: 0;
   top: 0;
-  left: 34%;
-  width: 32%;
+  left: 39%;
+  width: 31%;
   background: linear-gradient(160deg, #f6f0ff, #d9c6ff);
   color: #2a1f4d;
   rotate: 4deg;
@@ -216,12 +243,12 @@
 .hint {
   --card-edge: #ddd0fb;
   --depth: 4;
-  --enter-delay: 0.45s;
+  --enter-delay: 0.6s;
   --float-delay: -3s;
 
-  top: 13%;
+  top: 14%;
   right: 0;
-  width: 27%;
+  width: 26%;
   background: linear-gradient(160deg, #fbf8ff, #e6dbff);
   color: #a98bff;
   rotate: -6deg;
@@ -235,16 +262,17 @@
   color: #f5b400;
 }
 
-/* Code */
+/* Code: behind the laptop, its corner is covered by the character */
 .code {
   --card-edge: #7b55d6;
-  --depth: 3.5;
-  --enter-delay: 0.55s;
+  --depth: 2.4;
+  --enter-delay: 0.3s;
   --float-delay: -2s;
 
-  top: 47%;
-  right: 7%;
-  width: 30%;
+  z-index: 0;
+  top: 39%;
+  left: 56%;
+  width: 31%;
   border-color: rgb(170 130 255 / 0.5);
   background: linear-gradient(160deg, #3c3c55, #22222e);
   box-shadow:
@@ -252,7 +280,7 @@
     0.5cqw 0.7cqw 0 var(--card-edge),
     0 2.6cqw 5cqw rgb(40 20 90 / 0.35);
   color: var(--color-surface);
-  rotate: -4deg;
+  rotate: 6deg;
 }
 
 .codeRow {
@@ -306,89 +334,17 @@
   width: 70%;
 }
 
-/* Chat preview */
-.chat {
-  --card-edge: #e4dcf7;
-  --depth: 2;
-  --enter-delay: 0.2s;
-  --float-delay: -4s;
-
-  z-index: 1;
-  top: 33%;
-  left: 2%;
-  width: 56%;
-  padding: 3cqw;
-  background: var(--color-surface);
-  color: var(--color-text);
-}
-
-.chatHeader {
-  display: flex;
-  align-items: center;
-  gap: 2cqw;
-  margin-bottom: 2.4cqw;
-  padding-bottom: 2cqw;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.chatAvatar {
-  width: 6.4cqw;
-  height: 6.4cqw;
-}
-
-.chatName {
-  font-size: 3.2cqw;
-  font-weight: 800;
-}
-
-.chatStatus {
-  display: flex;
-  align-items: center;
-  gap: 0.8cqw;
-  font-size: 2.3cqw;
-  font-weight: 600;
-  color: #0a9d45;
-}
-
-.chatStatus::before {
-  content: "";
-  width: 1.2cqw;
-  height: 1.2cqw;
-  border-radius: 50%;
-  background: var(--color-accent-green);
-  box-shadow: 0 0 0 0.5cqw rgb(0 224 90 / 0.2);
-}
-
-.message {
-  width: fit-content;
-  max-width: 82%;
-  padding: 1.8cqw 2.4cqw;
-  border-radius: 2.4cqw;
-  font-size: 2.7cqw;
-  font-weight: 600;
-  line-height: 1.3;
-  animation: message-in 0.5s ease-out both;
-}
-
-.outgoing {
-  margin-left: auto;
-  border-bottom-right-radius: 0.6cqw;
-  background: var(--color-text);
-  color: var(--color-surface);
-  animation-delay: 0.9s;
-}
-
-.incoming {
-  margin-top: 1.6cqw;
-  border-bottom-left-radius: 0.6cqw;
-  background: var(--color-soft-purple);
-  animation-delay: 1.5s;
-}
-
 @keyframes pop-in {
   from {
     opacity: 0;
     scale: 0.6;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    translate: 0 8cqw;
   }
 }
 
@@ -417,12 +373,5 @@
   30% {
     translate: 0 -0.6cqw;
     opacity: 0.5;
-  }
-}
-
-@keyframes message-in {
-  from {
-    opacity: 0;
-    translate: 0 1.5cqw;
   }
 }
