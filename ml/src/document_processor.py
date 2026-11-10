@@ -95,17 +95,3 @@ def process_document(text: str) -> list[dict]:
         {"chunk_index": index, "content": chunk, "embedding": embedding}
         for index, (chunk, embedding) in enumerate(zip(chunks, embeddings, strict=True))
     ]
-
-
-if __name__ == "__main__":
-    # ТЕСТ
-    text = (
-        "Стажёр должен познакомиться с наставником. "
-        "Затем получить доступ к корпоративным сервисам. "
-    ) * 20
-
-    result = process_document(text)
-
-    print("Количество чанков:", len(result))
-    print("Размер вектора:", len(result[0]["embedding"]))
-    print("Первый чанк:", result[0]["content"])
