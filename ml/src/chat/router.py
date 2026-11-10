@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from .features.documents.embeddings import EmbeddingError, InferenceUnavailable
+from ..documents.embeddings import EmbeddingError, InferenceUnavailable
 from .provider import ProviderError
 
 router = APIRouter(tags=["chat"])
@@ -31,7 +31,8 @@ SYSTEM_PROMPT = """
 
 
 class AnalyzeRequest(BaseModel):
-    user_id: int = Field()
+    user_id: int = Field(gt=0, le=2**63 - 1, strict=True)
+    message_id: int = Field(gt=0, le=2**63 - 1, strict=True)
     stream: bool = False
 
 
@@ -72,18 +73,18 @@ async def analyze(body: AnalyzeRequest, request: Request):
         message = await pool.fetchrow(
             """
             SELECT text FROM messages
-            WHERE user_id = $1 AND role = 'user'
-            ORDER BY id DESC LIMIT 1
+            WHERE user_id = $1 AND id = $2 AND role = 'user'
             """,
             body.user_id,
+            body.message_id,
         )
     except DATABASE_ERRORS as exc:
         logger.warning("Database request failed")
         raise HTTPException(503, "Database unavailable") from exc
     if message is None:
-        raise HTTPException(404, "No user messages found")
+        raise HTTPException(404, "Message not found")
     if not message["text"].strip():
-        raise HTTPException(422, "Last user message is empty")
+        raise HTTPException(422, "Message is empty")
 
     try:
         [embedding] = await request.app.state.embeddings.encode(

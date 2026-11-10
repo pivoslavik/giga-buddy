@@ -5,11 +5,10 @@ from unittest.mock import Mock
 import numpy as np
 import pytest
 
-from ml.src.features.documents import embeddings
+from ml.src.documents import embeddings
 
 
 def test_batch_is_normalized_and_model_is_reused(monkeypatch):
-    monkeypatch.setenv("ML_INFERENCE_WORKERS", "1")
     monkeypatch.setenv("ML_INFERENCE_MAX_WAITING", "2")
     model = Mock()
     load_model = Mock(return_value=model)
@@ -233,44 +232,8 @@ def test_close_waits_for_active_worker_and_rejects_queued_work():
     asyncio.run(run())
 
 
-def test_configured_workers_use_independent_models(monkeypatch):
-    monkeypatch.setenv("ML_INFERENCE_WORKERS", "2")
-    monkeypatch.setenv("ML_INFERENCE_MAX_WAITING", "0")
-    started = [threading.Event(), threading.Event()]
-    release = threading.Event()
-
-    def make_model(entered):
-        def encode(*args, **kwargs):
-            entered.set()
-            assert release.wait(5)
-            return np.ones((1, 384))
-
-        return Mock(encode=Mock(side_effect=encode))
-
-    loader = Mock(side_effect=[make_model(entered) for entered in started])
-    monkeypatch.setattr(embeddings, "load_model", loader)
-
-    async def run():
-        service = await embeddings.Embeddings.load()
-        tasks = [asyncio.create_task(service.encode([str(i)])) for i in range(2)]
-        try:
-            for entered in started:
-                assert await asyncio.to_thread(entered.wait, 5)
-            with pytest.raises(embeddings.InferenceUnavailable):
-                await service.encode(["third"])
-        finally:
-            release.set()
-            await asyncio.gather(*tasks)
-            await service.close()
-
-    asyncio.run(run())
-    assert loader.call_count == 2
-
-
-@pytest.mark.parametrize(("workers", "max_waiting"), [("0", "1"), ("1", "-1")])
-def test_invalid_configuration_fails_before_loading(monkeypatch, workers, max_waiting):
-    monkeypatch.setenv("ML_INFERENCE_WORKERS", workers)
-    monkeypatch.setenv("ML_INFERENCE_MAX_WAITING", max_waiting)
+def test_invalid_configuration_fails_before_loading(monkeypatch):
+    monkeypatch.setenv("ML_INFERENCE_MAX_WAITING", "-1")
     loader = Mock()
     monkeypatch.setattr(embeddings, "load_model", loader)
     with pytest.raises(ValueError):

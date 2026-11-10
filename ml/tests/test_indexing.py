@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from ml.src import main
-from ml.src.features.documents import embeddings
+from ml.src.documents import embeddings
 
 
 @pytest.fixture
@@ -23,7 +23,6 @@ def indexing(monkeypatch):
     loader = Mock(return_value=model)
 
     monkeypatch.setenv("DATABASE_URL", "test-dsn")
-    monkeypatch.setenv("ML_INFERENCE_WORKERS", "1")
     monkeypatch.setenv("ML_INFERENCE_MAX_WAITING", "2")
     create_pool = Mock(return_value=pool)
     monkeypatch.setattr(main.asyncpg, "create_pool", create_pool)
@@ -146,3 +145,27 @@ def test_inference_overload_returns_503(indexing, monkeypatch):
     assert response.status_code == 503
     assert response.json() == {"detail": "Embedding inference is busy"}
     connection.transaction.assert_not_called()
+
+
+def test_chat_uses_requested_message_and_shared_model(indexing):
+    client, _, model, loader = indexing
+    app = client.app
+    pool = app.state.pool
+    pool.fetchrow = AsyncMock(side_effect=[None, {"text": "Earlier message"}])
+    pool.fetch = AsyncMock(return_value=[])
+    app.state.provider = Mock(complete=AsyncMock(return_value="Answer"))
+
+    payload = {"user_id": 3, "message_id": 12}
+    assert client.post("/analyze", json=payload).status_code == 404
+    model.encode.assert_not_called()
+    assert client.post("/documents", json={"document_id": 42}).status_code == 200
+    response = client.post("/analyze", json=payload)
+    assert response.json() == {"response": "Answer"}
+
+    for call in pool.fetchrow.await_args_list:
+        sql, user_id, message_id = call.args
+        assert "user_id = $1 AND id = $2" in sql
+        assert (user_id, message_id) == (3, 12)
+    loader.assert_called_once()
+    assert model.encode.call_args_list[0].args == (["passage: Existing text."],)
+    assert model.encode.call_args_list[1].args == (["query: Earlier message"],)

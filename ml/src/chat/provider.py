@@ -64,7 +64,10 @@ class Provider:
                         choices = chunk["choices"]
                         if not choices:
                             continue
-                        content = choices[0]["delta"].get("content")
+                        delta = choices[0]["delta"]
+                        if not isinstance(delta, dict):
+                            raise ValueError("Invalid delta")
+                        content = delta.get("content")
                         if content is not None:
                             if not isinstance(content, str):
                                 raise ValueError("Invalid delta")

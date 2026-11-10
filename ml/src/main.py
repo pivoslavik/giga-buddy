@@ -8,12 +8,12 @@ from fastapi import FastAPI
 from pgvector.asyncpg import register_vector
 
 from ..health import health
-from . import chat
-from .features.documents.chunker import Chunker
-from .features.documents.embeddings import Embeddings
-from .features.documents.processor import DocumentProcessor
-from .features.documents.router import router as documents_router
-from .provider import Provider
+from .chat import router as chat
+from .chat.provider import Provider
+from .documents import router as documents
+from .documents.chunker import Chunker
+from .documents.embeddings import Embeddings
+from .documents.processor import DocumentProcessor
 
 
 @asynccontextmanager
@@ -53,7 +53,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-app.include_router(documents_router)
+app.include_router(documents.router)
 app.include_router(chat.router)
 app.include_router(health.router)
 

@@ -34,15 +34,11 @@ class Embeddings:
 
     @classmethod
     async def load(cls) -> "Embeddings":
-        workers = int(os.getenv("ML_INFERENCE_WORKERS", "1"))
         max_waiting = int(os.getenv("ML_INFERENCE_MAX_WAITING", "2"))
-        if workers < 1 or max_waiting < 0:
-            raise ValueError(
-                "ML_INFERENCE_WORKERS must be positive and ML_INFERENCE_MAX_WAITING nonnegative"
-            )
-        # Each worker has its own model and tokenizer state.
-        models = [await asyncio.to_thread(load_model) for _ in range(workers)]
-        return cls(models, max_waiting)
+        if max_waiting < 0:
+            raise ValueError("ML_INFERENCE_MAX_WAITING must be nonnegative")
+        model = await asyncio.to_thread(load_model)
+        return cls([model], max_waiting)
 
     async def close(self) -> None:
         self._closing = True
