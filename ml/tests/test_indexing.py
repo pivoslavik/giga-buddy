@@ -7,7 +7,7 @@ from psycopg import IntegrityError, OperationalError
 from psycopg_pool import PoolTimeout
 
 from ml.src import main
-from ml.src.services import embeddings
+from ml.src.features.documents import embeddings
 
 
 @pytest.fixture

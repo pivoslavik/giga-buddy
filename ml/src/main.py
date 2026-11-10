@@ -6,10 +6,10 @@ from fastapi import FastAPI
 from pgvector.psycopg import register_vector_async
 from psycopg_pool import AsyncConnectionPool
 
-from .api.documents import router
-from .services.chunker import Chunker
-from .services.document_processor import DocumentProcessor
-from .services.embeddings import Embeddings
+from .features.documents.router import router
+from .features.documents.chunker import Chunker
+from .features.documents.processor import DocumentProcessor
+from .features.documents.embeddings import Embeddings
 
 
 @asynccontextmanager

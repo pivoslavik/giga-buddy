@@ -4,12 +4,12 @@ from fastapi import APIRouter, HTTPException, Request
 from psycopg import Error, OperationalError
 from psycopg_pool import PoolTimeout
 
-from ..services.document_processor import (
+from .processor import (
     DocumentChanged,
     DocumentNotFound,
     EmptyDocument,
 )
-from ..services.embeddings import EmbeddingError
+from .embeddings import EmbeddingError
 from .schemas import IndexDocumentRequest, IndexDocumentResult
 
 logger = logging.getLogger(__name__)

@@ -10,8 +10,8 @@ from pgvector.psycopg import register_vector_async
 from psycopg import AsyncConnection, DataError, sql
 from psycopg_pool import AsyncConnectionPool
 
-from ml.src.services.chunker import Chunker
-from ml.src.services.document_processor import DocumentProcessor
+from ml.src.features.documents.chunker import Chunker
+from ml.src.features.documents.processor import DocumentProcessor
 
 MIGRATIONS = Path(__file__).resolve().parents[2] / "infra" / "postgres"
 

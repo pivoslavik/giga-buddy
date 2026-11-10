@@ -1,9 +1,8 @@
 from psycopg_pool import AsyncConnectionPool
 
-from ..repositories.chunks import replace_document_chunks
-from ..repositories.documents import get_document_text
 from .chunker import Chunker
 from .embeddings import Embeddings
+from .repository import get_document_text, replace_document_chunks
 
 
 class DocumentNotFound(Exception):

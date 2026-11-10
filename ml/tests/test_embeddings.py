@@ -5,7 +5,7 @@ from unittest.mock import Mock
 import numpy as np
 import pytest
 
-from ml.src.services import embeddings
+from ml.src.features.documents import embeddings
 
 
 def test_batch_is_normalized_and_model_is_reused(monkeypatch):
