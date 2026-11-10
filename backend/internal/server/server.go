@@ -1,7 +1,17 @@
 package server
 
 import (
+	"context"
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/gin-gonic/gin"
+	"github.com/pivoslavik/giga-buddy/internal/auth"
 	"github.com/pivoslavik/giga-buddy/internal/server/health"
 )
 
@@ -15,6 +25,58 @@ func Run() error {
 
 	// public routes
 	router.GET("/health", health.HandleHealth)
+
+	// setting up database
+	ctx := context.Background()
+
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		log.Fatal("DATABASE_URL environment variable is not set")
+	}
+
+	poolCfg, err := pgxpool.ParseConfig(dsn)
+	if err != nil {
+		log.Fatalf("parse db dsn: %v", err)
+	}
+
+	poolCfg.MaxConns = 20
+	poolCfg.MinConns = 2
+	poolCfg.MaxConnLifetime = time.Hour
+	poolCfg.MaxConnIdleTime = 15 * time.Minute
+
+	pool, err := pgxpool.NewWithConfig(ctx, poolCfg)
+	if err != nil {
+		log.Fatalf("create pgx pool: %v", err)
+	}
+	defer pool.Close()
+
+	// setting up auth config
+	authCfg := auth.Config{
+		JWTSecret:         []byte(os.Getenv("JWT_SECRET")),
+		AccessTokenTTL:    15 * time.Minute,
+		RefreshTokenTTL:   30 * 24 * time.Hour,
+		CookieDomain:      os.Getenv("COOKIE_DOMAIN"),
+		CookieSecure:      os.Getenv("COOKIE_SECURE") == "true",
+		AccessCookieName:  "access_token",
+		RefreshCookieName: "refresh_token",
+	}
+
+	authStore := auth.NewPgxSessionStore(pool)
+	authSvc := auth.NewService(authCfg, authStore)
+
+	// api routes
+	api := router.Group("/api")
+
+	// auth routes registration + middleware
+	authMiddleware := auth.AuthRequired(authCfg, authSvc)
+
+	auth.RegisterRoutes(api, authCfg, authSvc, authMiddleware)
+
+	// start a worker to delete expired refresh sessions over time
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	go authSvc.RunCleanup(ctx, time.Hour)
 
 	return router.Run(":8080")
 }
