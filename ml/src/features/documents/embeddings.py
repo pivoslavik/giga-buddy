@@ -61,7 +61,6 @@ class Embeddings:
             future = asyncio.get_running_loop().run_in_executor(
                 self._executor, self._encode, model, chunks
             )
-            future.add_done_callback(lambda done: self._finish(model, done))
             # An abandoned request still owns its worker until the thread finishes.
             return await asyncio.shield(future)
         finally:
@@ -69,6 +68,10 @@ class Embeddings:
                 self._admitted -= 1
                 if model is not None:
                     self._available.put_nowait(model)
+            elif future.done():
+                self._finish(model, future)
+            else:
+                future.add_done_callback(lambda done: self._finish(model, done))
 
     def _finish(self, model, future: asyncio.Future) -> None:
         self._available.put_nowait(model)

@@ -69,6 +69,92 @@ def test_inference_errors(output):
     asyncio.run(run())
 
 
+@pytest.mark.parametrize("already_done", [True, False])
+@pytest.mark.parametrize("fails", [True, False])
+def test_completed_future_allows_immediate_retry(monkeypatch, already_done, fails):
+    result = np.ones((1, 384))
+    model = Mock()
+
+    async def run():
+        service = embeddings.Embeddings([model], max_waiting=0)
+        loop = asyncio.get_running_loop()
+        finish = Mock(wraps=service._finish)
+        monkeypatch.setattr(service, "_finish", finish)
+
+        def submit(executor, encode, leased_model, chunks):
+            assert leased_model is model
+            future = loop.create_future()
+            if chunks == ["first"] and fails:
+                complete = future.set_exception
+                outcome = embeddings.EmbeddingError("inference failed")
+            else:
+                complete = future.set_result
+                outcome = result
+            if already_done:
+                complete(outcome)
+            else:
+                loop.call_soon(complete, outcome)
+            return future
+
+        try:
+            with monkeypatch.context() as patch:
+                patch.setattr(loop, "run_in_executor", submit)
+                if fails:
+                    with pytest.raises(
+                        embeddings.EmbeddingError, match="inference failed"
+                    ):
+                        await service.encode(["first"])
+                else:
+                    assert await service.encode(["first"]) is result
+                assert await service.encode(["retry"]) is result
+                await asyncio.sleep(0)
+                assert finish.call_count == 2
+                assert service._admitted == 0
+                assert service._available.qsize() == 1
+        finally:
+            await service.close()
+
+    asyncio.run(run())
+
+
+def test_cancellation_after_future_completes_releases_slot_once(monkeypatch):
+    async def run():
+        service = embeddings.Embeddings([Mock()], max_waiting=0)
+        loop = asyncio.get_running_loop()
+
+        def submit(*args):
+            request = asyncio.current_task()
+            future = loop.create_future()
+
+            def cancel_and_complete():
+                request.cancel()
+                future.set_result(np.ones((1, 384)))
+
+            loop.call_soon(cancel_and_complete)
+            return future
+
+        async def request():
+            try:
+                await service.encode(["first"])
+            except asyncio.CancelledError:
+                assert service._admitted == 0
+                assert service._available.qsize() == 1
+                raise
+
+        try:
+            with monkeypatch.context() as patch:
+                patch.setattr(loop, "run_in_executor", submit)
+                with pytest.raises(asyncio.CancelledError):
+                    await asyncio.create_task(request())
+            await asyncio.sleep(0)
+            assert service._admitted == 0
+            assert service._available.qsize() == 1
+        finally:
+            await service.close()
+
+    asyncio.run(run())
+
+
 def test_queue_capacity_and_cancellation():
     entered = threading.Event()
     release = threading.Event()
