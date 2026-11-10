@@ -4,19 +4,14 @@ from pgvector.psycopg import register_vector
 
 
 def save_document_chunks(
-    conn: Connection,
-    document_id: int,
-    chunks: list[dict]
+    conn: Connection, document_id: int, chunks: list[dict]
 ) -> None:
     register_vector(conn)
 
     with conn.transaction():
         with conn.cursor() as cursor:
             for chunk in chunks:
-                embedding = np.asarray(
-                    chunk["embedding"],
-                    dtype=np.float32
-                )
+                embedding = np.asarray(chunk["embedding"], dtype=np.float32)
 
                 cursor.execute(
                     """
@@ -29,5 +24,5 @@ def save_document_chunks(
                         chunk["content"],
                         embedding,
                         chunk["chunk_index"],
-                    )
+                    ),
                 )
