@@ -1,6 +1,6 @@
 from src.loader.google_drive import GoogleDocumentLoader
 from src.client import create_client
-from src.monitor.google_drive import list_documents
+from src.monitor.differences import get_files_to_process
 from dotenv import load_dotenv
 import os
 
@@ -9,6 +9,7 @@ from pathlib import Path
 from src.model import api
 from src.reader import read_document
 from src.model.api import ModelAPIManager
+from src.db import Database
 
 LOADER_TARGET_DIRECTORY = "./documents/"
 
@@ -20,6 +21,7 @@ if __name__ == "__main__":
     model_base_url = os.environ["OPENAI_BASE_URL"]
     model_api_key = os.environ["OPENAI_API_KEY"]
     model_name = os.environ["OPENAI_CHAT_MODEL"]
+    db_url = os.environ["DB_URL"]
 
 
     # setting up google API client
@@ -29,7 +31,11 @@ if __name__ == "__main__":
 
     document_text = read_document(Path(LOADER_TARGET_DIRECTORY+"test.md"))
     model_manager = ModelAPIManager(model_api_key,model_base_url,model_name)
-    response = model_manager.send_prompt(document_text)
-    print(f"title:{response.title},description:{response.description},category:{response.category}")
-    
+    # response = model_manager.send_prompt(document_text)
+
+
+    #setting up the db
+    db = Database(db_url)
+
+    print(get_files_to_process(db,client,folder_id))
 

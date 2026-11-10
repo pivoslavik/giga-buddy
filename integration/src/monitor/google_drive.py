@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from googleapiclient._apis.drive.v3 import DriveResource
 
-def list_documents(client:DriveResource,folder_id:str):
+def list_documents(client:DriveResource,folder_id:str) -> list[dict]:
     files = []
     page_token = None
 
