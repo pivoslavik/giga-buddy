@@ -24,7 +24,7 @@ services:
         condition: service_completed_successfully
 
   postgres:
-    image: pgvector/pgvector:0.8.2-pg17
+    image: pgvector/pgvector:pg17
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_USER_PASSWORD}
