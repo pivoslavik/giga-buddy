@@ -1,0 +1,305 @@
+/* Everything inside is sized in container units, so the scene scales as one picture. */
+.scene {
+  position: relative;
+  isolation: isolate;
+  container-type: inline-size;
+  width: 100%;
+  max-width: 640px;
+  aspect-ratio: 32 / 25;
+  margin-inline: auto;
+}
+
+.orbit,
+.blobBlue,
+.blobPurple {
+  position: absolute;
+  z-index: -1;
+}
+
+.orbit {
+  left: 2%;
+  top: 30%;
+  width: 96%;
+  height: 50%;
+  border: 0.5cqw solid var(--color-accent-green);
+  border-radius: 50%;
+  rotate: -10deg;
+}
+
+.blobBlue {
+  left: 12%;
+  top: 4%;
+  width: 44%;
+  height: 68%;
+  border-radius: 58% 42% 46% 54% / 52% 44% 56% 48%;
+  background: var(--color-accent-blue);
+}
+
+.blobPurple {
+  right: 2%;
+  bottom: 2%;
+  width: 28%;
+  height: 30%;
+  border-radius: 46% 54% 40% 60% / 60% 46% 54% 40%;
+  background: var(--color-accent-purple);
+  rotate: -18deg;
+}
+
+.sparkle {
+  position: absolute;
+  top: 1%;
+  right: 20%;
+  width: 7cqw;
+  height: 7cqw;
+  color: var(--color-accent-green);
+}
+
+.card {
+  position: absolute;
+  padding: 2.4cqw;
+  border-radius: 2.6cqw;
+  box-shadow: 0 2cqw 4cqw rgb(60 40 120 / 0.18);
+  font-size: 2.8cqw;
+  font-weight: 700;
+  line-height: 1.2;
+  animation: float 6s ease-in-out infinite;
+}
+
+.cardTitle {
+  display: flex;
+  align-items: center;
+  gap: 1.2cqw;
+  margin-bottom: 1.8cqw;
+}
+
+.cardTitle svg {
+  width: 3.4cqw;
+  height: 3.4cqw;
+}
+
+.line {
+  display: block;
+  height: 1.3cqw;
+  border-radius: 1cqw;
+  background: currentColor;
+}
+
+.line + .line {
+  margin-top: 1.2cqw;
+}
+
+.long {
+  width: 92%;
+}
+
+.medium {
+  width: 72%;
+}
+
+.short {
+  width: 48%;
+}
+
+/* AI chat */
+.aiChat {
+  top: 0;
+  left: 34%;
+  width: 32%;
+  background: linear-gradient(160deg, #f3ecff, #dccbff);
+  color: #2a1f4d;
+  rotate: 4deg;
+  animation-delay: -1s;
+}
+
+.aiChatIcon {
+  color: var(--color-accent-purple);
+}
+
+.aiChatBubble {
+  padding: 2cqw;
+  border-radius: 2cqw;
+  background: linear-gradient(120deg, #8fb6ff, #a68bff);
+  color: rgb(255 255 255 / 0.85);
+}
+
+.typing {
+  position: absolute;
+  right: -2cqw;
+  bottom: -2cqw;
+  display: flex;
+  gap: 0.8cqw;
+  padding: 1.4cqw 1.8cqw;
+  border-radius: 2cqw;
+  background: var(--color-surface);
+  box-shadow: 0 1cqw 2cqw rgb(60 40 120 / 0.2);
+}
+
+.typing span {
+  width: 1.1cqw;
+  height: 1.1cqw;
+  border-radius: 50%;
+  background: var(--color-text);
+}
+
+/* Hint */
+.hint {
+  top: 13%;
+  right: 0;
+  width: 27%;
+  background: linear-gradient(160deg, #f8f3ff, #e7ddff);
+  color: #a98bff;
+  rotate: -6deg;
+  animation-delay: -3s;
+}
+
+.hint .cardTitle {
+  color: #2a1f4d;
+}
+
+.hintIcon {
+  color: #f5b400;
+}
+
+/* Code */
+.code {
+  top: 47%;
+  right: 7%;
+  width: 30%;
+  background: #2a2a3c;
+  color: var(--color-surface);
+  rotate: -4deg;
+  animation-delay: -2s;
+}
+
+.codeRow {
+  display: flex;
+  align-items: center;
+  gap: 1.4cqw;
+}
+
+.codeRow + .codeRow {
+  margin-top: 1.2cqw;
+}
+
+.codeRow::before {
+  content: "";
+  width: 1.3cqw;
+  height: 1.3cqw;
+  flex-shrink: 0;
+  border-radius: 0.4cqw;
+  background: #6b6b85;
+}
+
+.codeRow::after {
+  content: "";
+  height: 1.3cqw;
+  border-radius: 1cqw;
+  background: currentColor;
+}
+
+.codeGreen {
+  color: var(--color-accent-green);
+}
+
+.codeGreen::after {
+  width: 80%;
+}
+
+.codePurple {
+  color: var(--color-accent-purple);
+}
+
+.codePurple::after {
+  width: 60%;
+}
+
+.codeBlue {
+  color: var(--color-accent-blue);
+}
+
+.codeBlue::after {
+  width: 70%;
+}
+
+/* Chat preview */
+.chat {
+  z-index: 1;
+  top: 33%;
+  left: 2%;
+  width: 56%;
+  padding: 3cqw;
+  background: var(--color-surface);
+  color: var(--color-text);
+  animation-delay: -4s;
+}
+
+.chatHeader {
+  display: flex;
+  align-items: center;
+  gap: 2cqw;
+  margin-bottom: 2.4cqw;
+  padding-bottom: 2cqw;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.chatAvatar {
+  width: 6.4cqw;
+  height: 6.4cqw;
+}
+
+.chatName {
+  font-size: 3.2cqw;
+  font-weight: 800;
+}
+
+.chatStatus {
+  display: flex;
+  align-items: center;
+  gap: 0.8cqw;
+  font-size: 2.3cqw;
+  font-weight: 600;
+  color: #0a9d45;
+}
+
+.chatStatus::before {
+  content: "";
+  width: 1.2cqw;
+  height: 1.2cqw;
+  border-radius: 50%;
+  background: var(--color-accent-green);
+}
+
+.message {
+  width: fit-content;
+  max-width: 82%;
+  padding: 1.8cqw 2.4cqw;
+  border-radius: 2.4cqw;
+  font-size: 2.7cqw;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.outgoing {
+  margin-left: auto;
+  border-bottom-right-radius: 0.6cqw;
+  background: var(--color-text);
+  color: var(--color-surface);
+}
+
+.incoming {
+  margin-top: 1.6cqw;
+  border-bottom-left-radius: 0.6cqw;
+  background: var(--color-soft-purple);
+}
+
+@keyframes float {
+  50% {
+    translate: 0 -1.2cqw;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none;
+  }
+}
