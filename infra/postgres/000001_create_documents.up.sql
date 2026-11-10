@@ -10,8 +10,8 @@ CREATE TYPE document_category AS ENUM (
 
 CREATE TABLE documents (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    title TEXT NOT NULL,
-    description TEXT,
-    text TEXT NOT NULL,
+    title TEXT NOT NULL CHECK (btrim(title) <> ''),
+    description TEXT NOT NULL CHECK (btrim(title) <> ''),
+    text TEXT NOT NULL CHECK (btrim(title) <> ''),
     category document_category NOT NULL
 );

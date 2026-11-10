@@ -1,3 +1,3 @@
-DROP TABLE IF EXISTS documents;
+DROP TABLE documents;
 
-DROP TYPE IF EXISTS document_category;
+DROP TYPE document_category;
