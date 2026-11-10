@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/pivoslavik/giga-buddy/server"
+	"github.com/pivoslavik/giga-buddy/internal/server"
 	"log"
 )
 

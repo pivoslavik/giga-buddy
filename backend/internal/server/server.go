@@ -2,7 +2,7 @@ package server
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/pivoslavik/giga-buddy/server/health"
+	"github.com/pivoslavik/giga-buddy/internal/server/health"
 )
 
 func Run() error {
