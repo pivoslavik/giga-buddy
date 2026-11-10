@@ -1,48 +1,47 @@
+import asyncio
 import os
-from typing import Annotated, Literal
+from contextlib import asynccontextmanager
 
-import psycopg
-from fastapi import FastAPI, status
-from pydantic import BaseModel, StringConstraints
+from fastapi import FastAPI
+from pgvector.psycopg import register_vector_async
+from psycopg_pool import AsyncConnectionPool
 
-from .chunk_repository import save_document_chunks
-from .document_processor import process_document
-
-app = FastAPI()
-
-DocumentString = Annotated[
-    str, StringConstraints(strip_whitespace=True, min_length=1, pattern=r"^[^\x00]+$")
-]
+from .api.documents import router
+from .services.chunker import Chunker
+from .services.document_processor import DocumentProcessor
+from .services.embeddings import Embeddings
 
 
-class Document(BaseModel):
-    title: DocumentString
-    description: DocumentString
-    text: DocumentString
-    category: Literal[
-        "start_work",
-        "development",
-        "work_processes",
-        "team_values",
-        "contacts",
-        "ai_answers",
-        "company",
-    ]
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    pool = AsyncConnectionPool(
+        os.environ["DATABASE_URL"],
+        open=False,
+        min_size=1,
+        max_size=4,
+        kwargs={"autocommit": True},
+        configure=register_vector_async,
+    )
+    async with pool:
+        await pool.wait()
+        embeddings = await Embeddings.load()
+        try:
+            app.state.document_processor = DocumentProcessor(
+                pool, Chunker(), embeddings
+            )
+            yield
+        finally:
+            await embeddings.close()
 
 
-@app.post("/documents", status_code=status.HTTP_201_CREATED)
-def create_document(document: Document) -> dict[str, int]:
-    chunks = process_document(document.text)
+app = FastAPI(lifespan=lifespan)
+app.include_router(router)
 
-    with psycopg.connect(os.environ["DATABASE_URL"]) as conn:
-        document_id = conn.execute(
-            """
-            INSERT INTO documents (title, description, text, category)
-            VALUES (%s, %s, %s, %s)
-            RETURNING id
-            """,
-            (document.title, document.description, document.text, document.category),
-        ).fetchone()[0]
-        save_document_chunks(conn, document_id, chunks)
 
-    return {"id": document_id, "chunk_count": len(chunks)}
+if __name__ == "__main__":
+    import uvicorn
+
+    if os.name == "nt":
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+    uvicorn.run(app, host="0.0.0.0", port=8000, loop="none")
