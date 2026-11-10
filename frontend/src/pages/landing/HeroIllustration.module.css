@@ -1,5 +1,13 @@
-/* Everything inside is sized in container units, so the scene scales as one picture. */
+/*
+ * Everything inside is sized in container units, so the scene scales as one picture.
+ * Each direct child is a layer: --depth sets how far it follows the pointer parallax,
+ * --enter-delay staggers the entrance, --float-delay offsets the idle floating.
+ */
 .scene {
+  --parallax-x: 0;
+  --parallax-y: 0;
+  --ease-pop: cubic-bezier(0.2, 0.9, 0.3, 1.25);
+
   position: relative;
   isolation: isolate;
   container-type: inline-size;
@@ -9,14 +17,30 @@
   margin-inline: auto;
 }
 
+.scene > * {
+  --depth: 1;
+
+  position: absolute;
+  transform: translate3d(
+    calc(var(--parallax-x) * var(--depth) * -0.6cqw),
+    calc(var(--parallax-y) * var(--depth) * -0.6cqw),
+    0
+  );
+  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: pop-in 0.8s var(--ease-pop) var(--enter-delay, 0s) both;
+}
+
+/* Background shapes */
 .orbit,
 .blobBlue,
 .blobPurple {
-  position: absolute;
   z-index: -1;
 }
 
 .orbit {
+  --depth: 0.6;
+  --enter-delay: 0.1s;
+
   left: 2%;
   top: 30%;
   width: 96%;
@@ -27,42 +51,76 @@
 }
 
 .blobBlue {
+  --depth: 1;
+
   left: 12%;
   top: 4%;
   width: 44%;
   height: 68%;
   border-radius: 58% 42% 46% 54% / 52% 44% 56% 48%;
-  background: var(--color-accent-blue);
+  background: radial-gradient(circle at 30% 25%, #52c8ff, var(--color-accent-blue) 45%, #0088e6);
 }
 
 .blobPurple {
+  --depth: 1.4;
+  --enter-delay: 0.15s;
+
   right: 2%;
   bottom: 2%;
   width: 28%;
   height: 30%;
   border-radius: 46% 54% 40% 60% / 60% 46% 54% 40%;
-  background: var(--color-accent-purple);
+  background: radial-gradient(circle at 35% 30%, #b78ff7, var(--color-accent-purple) 50%, #7440d6);
   rotate: -18deg;
 }
 
 .sparkle {
-  position: absolute;
+  color: var(--color-accent-green);
+  filter: drop-shadow(0 0.6cqw 1cqw rgb(0 180 80 / 0.35));
+  animation:
+    pop-in 0.8s var(--ease-pop) var(--enter-delay) both,
+    twinkle 3.2s ease-in-out calc(var(--enter-delay) + 0.8s) infinite;
+}
+
+.sparkleLarge {
+  --depth: 2.5;
+  --enter-delay: 0.6s;
+
   top: 1%;
   right: 20%;
   width: 7cqw;
   height: 7cqw;
-  color: var(--color-accent-green);
 }
 
+.sparkleSmall {
+  --depth: 2;
+  --enter-delay: 0.75s;
+
+  top: 30%;
+  left: 4%;
+  width: 4cqw;
+  height: 4cqw;
+  color: var(--color-accent-purple);
+  filter: drop-shadow(0 0.6cqw 1cqw rgb(120 70 220 / 0.35));
+}
+
+/* Glossy "3D plastic" cards: a light top edge, a solid offset for thickness and a soft shadow */
 .card {
-  position: absolute;
+  --card-edge: #c9b3f7;
+
   padding: 2.4cqw;
+  border: 1px solid rgb(255 255 255 / 0.7);
   border-radius: 2.6cqw;
-  box-shadow: 0 2cqw 4cqw rgb(60 40 120 / 0.18);
-  font-size: 2.8cqw;
-  font-weight: 700;
+  box-shadow:
+    inset 0 0.35cqw 0 rgb(255 255 255 / 0.85),
+    0.5cqw 0.7cqw 0 var(--card-edge),
+    0 2.6cqw 5cqw rgb(70 40 140 / 0.22);
+  font-size: 3cqw;
+  font-weight: 800;
   line-height: 1.2;
-  animation: float 6s ease-in-out infinite;
+  animation:
+    pop-in 0.8s var(--ease-pop) var(--enter-delay, 0s) both,
+    float 6s ease-in-out var(--float-delay, 0s) infinite;
 }
 
 .cardTitle {
@@ -73,8 +131,8 @@
 }
 
 .cardTitle svg {
-  width: 3.4cqw;
-  height: 3.4cqw;
+  width: 3.6cqw;
+  height: 3.6cqw;
 }
 
 .line {
@@ -102,13 +160,16 @@
 
 /* AI chat */
 .aiChat {
+  --depth: 3;
+  --enter-delay: 0.3s;
+  --float-delay: -1s;
+
   top: 0;
   left: 34%;
   width: 32%;
-  background: linear-gradient(160deg, #f3ecff, #dccbff);
+  background: linear-gradient(160deg, #f6f0ff, #d9c6ff);
   color: #2a1f4d;
   rotate: 4deg;
-  animation-delay: -1s;
 }
 
 .aiChatIcon {
@@ -118,8 +179,9 @@
 .aiChatBubble {
   padding: 2cqw;
   border-radius: 2cqw;
-  background: linear-gradient(120deg, #8fb6ff, #a68bff);
-  color: rgb(255 255 255 / 0.85);
+  background: linear-gradient(120deg, #8db8ff, #a585ff);
+  box-shadow: inset 0 0.3cqw 0 rgb(255 255 255 / 0.45);
+  color: rgb(255 255 255 / 0.9);
 }
 
 .typing {
@@ -131,7 +193,7 @@
   padding: 1.4cqw 1.8cqw;
   border-radius: 2cqw;
   background: var(--color-surface);
-  box-shadow: 0 1cqw 2cqw rgb(60 40 120 / 0.2);
+  box-shadow: 0 1cqw 2cqw rgb(60 40 120 / 0.25);
 }
 
 .typing span {
@@ -139,17 +201,30 @@
   height: 1.1cqw;
   border-radius: 50%;
   background: var(--color-text);
+  animation: typing 1.2s ease-in-out infinite;
+}
+
+.typing span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.typing span:nth-child(3) {
+  animation-delay: 0.3s;
 }
 
 /* Hint */
 .hint {
+  --card-edge: #ddd0fb;
+  --depth: 4;
+  --enter-delay: 0.45s;
+  --float-delay: -3s;
+
   top: 13%;
   right: 0;
   width: 27%;
-  background: linear-gradient(160deg, #f8f3ff, #e7ddff);
+  background: linear-gradient(160deg, #fbf8ff, #e6dbff);
   color: #a98bff;
   rotate: -6deg;
-  animation-delay: -3s;
 }
 
 .hint .cardTitle {
@@ -162,13 +237,22 @@
 
 /* Code */
 .code {
+  --card-edge: #7b55d6;
+  --depth: 3.5;
+  --enter-delay: 0.55s;
+  --float-delay: -2s;
+
   top: 47%;
   right: 7%;
   width: 30%;
-  background: #2a2a3c;
+  border-color: rgb(170 130 255 / 0.5);
+  background: linear-gradient(160deg, #3c3c55, #22222e);
+  box-shadow:
+    inset 0 0.35cqw 0 rgb(255 255 255 / 0.12),
+    0.5cqw 0.7cqw 0 var(--card-edge),
+    0 2.6cqw 5cqw rgb(40 20 90 / 0.35);
   color: var(--color-surface);
   rotate: -4deg;
-  animation-delay: -2s;
 }
 
 .codeRow {
@@ -195,6 +279,7 @@
   height: 1.3cqw;
   border-radius: 1cqw;
   background: currentColor;
+  box-shadow: 0 0 1.2cqw currentColor;
 }
 
 .codeGreen {
@@ -223,6 +308,11 @@
 
 /* Chat preview */
 .chat {
+  --card-edge: #e4dcf7;
+  --depth: 2;
+  --enter-delay: 0.2s;
+  --float-delay: -4s;
+
   z-index: 1;
   top: 33%;
   left: 2%;
@@ -230,7 +320,6 @@
   padding: 3cqw;
   background: var(--color-surface);
   color: var(--color-text);
-  animation-delay: -4s;
 }
 
 .chatHeader {
@@ -267,6 +356,7 @@
   height: 1.2cqw;
   border-radius: 50%;
   background: var(--color-accent-green);
+  box-shadow: 0 0 0 0.5cqw rgb(0 224 90 / 0.2);
 }
 
 .message {
@@ -277,6 +367,7 @@
   font-size: 2.7cqw;
   font-weight: 600;
   line-height: 1.3;
+  animation: message-in 0.5s ease-out both;
 }
 
 .outgoing {
@@ -284,12 +375,21 @@
   border-bottom-right-radius: 0.6cqw;
   background: var(--color-text);
   color: var(--color-surface);
+  animation-delay: 0.9s;
 }
 
 .incoming {
   margin-top: 1.6cqw;
   border-bottom-left-radius: 0.6cqw;
   background: var(--color-soft-purple);
+  animation-delay: 1.5s;
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    scale: 0.6;
+  }
 }
 
 @keyframes float {
@@ -298,8 +398,31 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .card {
-    animation: none;
+@keyframes twinkle {
+  50% {
+    opacity: 0.7;
+    scale: 0.78;
+    rotate: 20deg;
+  }
+}
+
+@keyframes typing {
+  0%,
+  60%,
+  100% {
+    translate: 0 0;
+    opacity: 1;
+  }
+
+  30% {
+    translate: 0 -0.6cqw;
+    opacity: 0.5;
+  }
+}
+
+@keyframes message-in {
+  from {
+    opacity: 0;
+    translate: 0 1.5cqw;
   }
 }

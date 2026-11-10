@@ -1,15 +1,24 @@
+import { useRef } from "react"
 import { LogoMark } from "../../shared/ui/Logo/Logo"
 import { BulbIcon, CodeIcon, SparkleIcon } from "../../shared/ui/icons/icons"
 import styles from "./HeroIllustration.module.css"
+import { usePointerParallax } from "./usePointerParallax"
 
-/** Decorative hero scene: what working with AI Buddy looks like. Hidden from assistive tech. */
+/**
+ * Decorative hero scene: what working with AI Buddy looks like. Hidden from assistive tech.
+ * Every direct child is a layer with its own depth for the pointer parallax.
+ */
 export function HeroIllustration() {
+  const sceneRef = useRef<HTMLDivElement>(null)
+  usePointerParallax(sceneRef)
+
   return (
-    <div className={styles.scene} aria-hidden="true">
+    <div ref={sceneRef} className={styles.scene} aria-hidden="true">
       <div className={styles.orbit} />
       <div className={styles.blobBlue} />
       <div className={styles.blobPurple} />
-      <SparkleIcon className={styles.sparkle} />
+      <SparkleIcon className={`${styles.sparkle} ${styles.sparkleLarge}`} />
+      <SparkleIcon className={`${styles.sparkle} ${styles.sparkleSmall}`} />
 
       <div className={`${styles.card} ${styles.aiChat}`}>
         <div className={styles.cardTitle}>
