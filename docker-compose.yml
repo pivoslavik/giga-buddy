@@ -6,6 +6,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/health"]
       interval: 5s
@@ -26,6 +28,19 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+
+  migrator:
+    image: migrate/migrate:v4.18.3
+    volumes:
+      - ./infra/postgres:/migrations:ro
+    command:
+      - -path=/migrations
+      - -database=postgres://${DB_USER}:${DB_USER_PASSWORD}@postgres:5432/${DB_NAME}?sslmode=disable
+      - up
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   nginx:
     image: nginx:1.30.6-alpine
