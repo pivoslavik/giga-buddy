@@ -1,0 +1,16 @@
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.mark {
+  width: 1.5em;
+  height: 1.5em;
+  flex-shrink: 0;
+}
