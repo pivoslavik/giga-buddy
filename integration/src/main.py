@@ -1,27 +1,35 @@
 from src.loader.google_drive import GoogleDocumentLoader
 from src.client import create_client
+from src.monitor.google_drive import list_documents
 from dotenv import load_dotenv
 import os
 
 #DELETE
 from pathlib import Path
+from src.model import api
+from src.reader import read_document
+from src.model.api import ModelAPIManager
 
-LOADER_DIRECTORY = "./documents/"
+LOADER_TARGET_DIRECTORY = "./documents/"
 
-def get_environment() -> tuple[str,str]:
-    load_dotenv()
-    drive_credentials_path = os.getenv("GOOGLE_DRIVE_CREDENTIALS")
-    assert drive_credentials_path is not None
-    folder_id = os.getenv("FOLDER_ID")
-    assert folder_id is not None
-    return drive_credentials_path,folder_id
-    
 if __name__ == "__main__":
     # getting the environment
-    drive_credentials_path,folder_id = get_environment()
-    
+    load_dotenv()
+    drive_credentials_path = os.environ["GOOGLE_DRIVE_CREDENTIALS"]
+    folder_id = os.environ["FOLDER_ID"]
+    model_base_url = os.environ["OPENAI_BASE_URL"]
+    model_api_key = os.environ["OPENAI_API_KEY"]
+    model_name = os.environ["OPENAI_CHAT_MODEL"]
+
+
     # setting up google API client
     client = create_client(drive_credentials_path)
 
     loader = GoogleDocumentLoader(client)
-    print(loader.list_files(folder_id))
+
+    document_text = read_document(Path(LOADER_TARGET_DIRECTORY+"test.md"))
+    model_manager = ModelAPIManager(model_api_key,model_base_url,model_name)
+    response = model_manager.send_prompt(document_text)
+    print(f"title:{response.title},description:{response.description},category:{response.category}")
+    
+
