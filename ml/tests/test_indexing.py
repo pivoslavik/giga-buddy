@@ -32,7 +32,12 @@ def indexing(monkeypatch):
         yield client, connection, model, loader
 
     create_pool.assert_called_once_with(
-        "test-dsn", min_size=1, max_size=4, timeout=10, init=main.register_vector
+        "test-dsn",
+        min_size=1,
+        max_size=4,
+        timeout=10,
+        command_timeout=30,
+        init=main.register_vector,
     )
     pool.__aenter__.assert_awaited_once()
     pool.__aexit__.assert_awaited_once()

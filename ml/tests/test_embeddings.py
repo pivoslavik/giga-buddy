@@ -81,8 +81,9 @@ def test_completed_future_allows_immediate_retry(monkeypatch, already_done, fail
         finish = Mock(wraps=service._finish)
         monkeypatch.setattr(service, "_finish", finish)
 
-        def submit(executor, encode, leased_model, chunks):
+        def submit(executor, encode, leased_model, chunks, prefix):
             assert leased_model is model
+            assert prefix == "passage"
             future = loop.create_future()
             if chunks == ["first"] and fails:
                 complete = future.set_exception
