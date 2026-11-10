@@ -12,7 +12,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/pivoslavik/giga-buddy/internal/auth"
+	"github.com/pivoslavik/giga-buddy/internal/login"
 	"github.com/pivoslavik/giga-buddy/internal/server/health"
+	"github.com/pivoslavik/giga-buddy/internal/users"
 )
 
 func Run() error {
@@ -50,7 +52,10 @@ func Run() error {
 	}
 	defer pool.Close()
 
-	// setting up auth config
+	// api routes
+	api := router.Group("/api")
+
+	// auth
 	authCfg := auth.Config{
 		JWTSecret:         []byte(os.Getenv("JWT_SECRET")),
 		AccessTokenTTL:    15 * time.Minute,
@@ -60,17 +65,18 @@ func Run() error {
 		AccessCookieName:  "access_token",
 		RefreshCookieName: "refresh_token",
 	}
-
 	authStore := auth.NewPgxSessionStore(pool)
 	authSvc := auth.NewService(authCfg, authStore)
 
-	// api routes
-	api := router.Group("/api")
-
 	// auth routes registration + middleware
 	authMiddleware := auth.AuthRequired(authCfg, authSvc)
-
 	auth.RegisterRoutes(api, authCfg, authSvc, authMiddleware)
+
+	// users
+	usersStore := users.NewPgxStore(pool)
+
+	// login
+	login.RegisterRoutes(api, usersStore, authSvc, authCfg)
 
 	// start a worker to delete expired refresh sessions over time
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

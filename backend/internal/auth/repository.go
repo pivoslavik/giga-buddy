@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// SessionStore - main interface for DB session
+// SessionStore - interface for DB refresh session model
 type SessionStore interface {
 	Create(ctx context.Context, s *RefreshSession) error
 	GetByHash(ctx context.Context, hash string) (*RefreshSession, error)
@@ -18,7 +18,7 @@ type SessionStore interface {
 	DeleteExpired(ctx context.Context) error
 }
 
-// PgxSessionStore - auth DB pool
+// PgxSessionStore - pgx DB model
 type PgxSessionStore struct {
 	pool *pgxpool.Pool
 }
