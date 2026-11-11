@@ -6,6 +6,8 @@
 .venv/
 venv/
 env/
+secrets/
+documents/
 
 # Go
 bin/
