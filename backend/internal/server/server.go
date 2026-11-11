@@ -52,6 +52,12 @@ func Run() error {
 	}
 	defer pool.Close()
 
+	pingCtx, cancelPing := context.WithTimeout(ctx, 5*time.Second)
+	defer cancelPing()
+	if err := pool.Ping(pingCtx); err != nil {
+		log.Fatalf("db ping: %v", err)
+	}
+
 	// api routes
 	api := router.Group("/api")
 
