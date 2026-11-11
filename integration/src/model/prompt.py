@@ -1,4 +1,3 @@
-
 CATEGORIES = [
     "start_work",
     "development",
