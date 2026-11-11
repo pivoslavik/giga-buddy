@@ -9,7 +9,6 @@ class ModelResponse:
     title:str
     description:str
     category:str
-    document_text:str
 
 class ModelAPIManager:
     def __init__(self,api_key:str,base_url:str,model:str):
@@ -43,7 +42,6 @@ class ModelAPIManager:
                 answer["title"],
                 answer["description"],
                 answer["category"],
-                document_text
         )
         return model_response
         

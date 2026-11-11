@@ -2,6 +2,7 @@ from psycopg import connect, cursor
 from dataclasses import dataclass
 from datetime import datetime
 from psycopg.rows import class_row
+from src.models import DocumentSyncRequest
 
 @dataclass
 class DocumentsRow:
@@ -10,7 +11,7 @@ class DocumentsRow:
     description: str
     text: str
     category: str
-    google_file_id: str 
+    google_document_id: str 
     source_modified_at: datetime 
 
 class Database:
@@ -24,8 +25,52 @@ class Database:
         with self.conn.cursor(row_factory=class_row(DocumentsRow)) as cur:
             cur.execute(
                 """
-                SELECT id, title, description, text, category,google_file_id, source_modified_at 
+                SELECT id, title, description, text, category,google_document_id, source_modified_at 
                 FROM documents
                 """
             )
             return cur.fetchall()
+    
+    def process_add_request(self,request:DocumentSyncRequest):
+        with self.conn.cursor() as cur:
+            cur.execute(
+                    """
+                    INSERT INTO documents (title,description,text,category,google_document_id,source_modified_at)
+                    VALUES (%s,%s,%s,%s,%s,%s)
+                    """,
+                    (request.title,
+                     request.description,
+                     request.text,
+                     request.category,
+                     request.google_document_id,
+                     request.source_modified_at)
+            )
+
+    def process_modify_request(self,request:DocumentSyncRequest):
+        with self.conn.cursor() as cur:
+            cur.execute(
+                    """
+                    UPDATE documents
+                    SET title = %s,
+                    description = %s,
+                    text = %s,
+                    category = %s,
+                    source_modified_at = %s
+                    WHERE google_document_id = %s
+                    """,
+                    (request.title,
+                     request.description,
+                     request.text,
+                     request.category,
+                     request.source_modified_at,
+                     request.google_document_id)
+            )
+
+    def process_delete_request(self,drive_id:str):
+        with self.conn.cursor() as cur:
+            cur.execute(
+                    """
+                    DELETE FROM documents WHERE google_document_id = %s
+                    """,
+                    (drive_id,)
+            )

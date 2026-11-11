@@ -3,7 +3,6 @@ from pathlib import Path
 from googleapiclient.http import MediaIoBaseDownload
 
 from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
     from googleapiclient._apis.drive.v3 import DriveResource
 
