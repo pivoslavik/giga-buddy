@@ -9,7 +9,7 @@ from .processor import (
     EmptyDocument,
 )
 from .embeddings import EmbeddingError, InferenceUnavailable
-from .schemas import IndexDocumentRequest, IndexDocumentResult
+from .schemas import IndexDocumentRequest, IndexDocumentResult, DocumentStatus
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -21,7 +21,15 @@ async def index_document(
 ) -> IndexDocumentResult:
     document_id = payload.document_id
     try:
-        count = await request.app.state.document_processor.process(document_id)
+        match payload.status:
+            case DocumentStatus.ADDED | DocumentStatus.MODIFIED:
+                await request.app.state.document_processor.process_add_or_modify_documents_chunks(
+                    document_id
+                )
+            case DocumentStatus.DELETED:
+                await request.app.state.document_processor.process_delete_documents_chunks(
+                    document_id
+                )
     except DocumentNotFound as exc:
         raise HTTPException(404, "Document not found") from exc
     except EmptyDocument as exc:
@@ -45,4 +53,4 @@ async def index_document(
         logger.exception("Inference failed for document %s", document_id)
         raise HTTPException(500, "Could not generate embeddings") from exc
 
-    return IndexDocumentResult(id=document_id, chunk_count=count)
+    return IndexDocumentResult()

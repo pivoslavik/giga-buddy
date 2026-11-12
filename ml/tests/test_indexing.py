@@ -53,8 +53,38 @@ def indexing(monkeypatch):
 )
 def test_invalid_document_id(indexing, payload):
     client, connection, model, _ = indexing
-    assert client.post("/documents", json=payload).status_code == 422
+    assert (
+        client.post("/documents", json={"status": "added", **payload}).status_code
+        == 422
+    )
     connection.fetchval.assert_not_called()
+    model.encode.assert_not_called()
+
+
+@pytest.mark.parametrize("status_fields", [{}, {"status": "unknown"}])
+def test_missing_or_invalid_document_status(indexing, status_fields):
+    client, connection, model, _ = indexing
+    response = client.post("/documents", json={"document_id": 42, **status_fields})
+    assert response.status_code == 422
+    connection.fetchval.assert_not_awaited()
+    model.encode.assert_not_called()
+
+
+def test_deleted_removes_only_chunks_and_can_be_retried(indexing):
+    client, connection, model, _ = indexing
+    for _ in range(2):
+        response = client.post(
+            "/documents", json={"document_id": 42, "status": "deleted"}
+        )
+        assert response.status_code == 200
+        assert response.json() == {"status": "ok"}
+
+    assert [call.args for call in connection.execute.await_args_list] == [
+        ("DELETE FROM document_chunks WHERE document_id = $1", 42),
+        ("DELETE FROM document_chunks WHERE document_id = $1", 42),
+    ]
+    connection.fetchval.assert_not_awaited()
+    connection.executemany.assert_not_awaited()
     model.encode.assert_not_called()
 
 
@@ -62,17 +92,25 @@ def test_invalid_document_id(indexing, payload):
 def test_missing_or_empty_document(indexing, row, status):
     client, connection, model, _ = indexing
     connection.fetchval.return_value = row
-    assert client.post("/documents", json={"document_id": 42}).status_code == status
+    assert (
+        client.post(
+            "/documents", json={"document_id": 42, "status": "modified"}
+        ).status_code
+        == status
+    )
     model.encode.assert_not_called()
     connection.execute.assert_not_called()
 
 
-def test_indexing_replaces_chunks_using_document_id(indexing):
+@pytest.mark.parametrize("operation", ["added", "modified"])
+def test_indexing_replaces_chunks_using_document_id(indexing, operation):
     client, connection, model, loader = indexing
     for _ in range(2):
-        response = client.post("/documents", json={"document_id": 42})
+        response = client.post(
+            "/documents", json={"document_id": 42, "status": operation}
+        )
         assert response.status_code == 200
-        assert response.json() == {"id": 42, "chunk_count": 1}
+        assert response.json() == {"status": "ok"}
 
     assert loader.call_count == 1
     assert model.encode.call_count == 2
@@ -101,7 +139,12 @@ def test_indexing_replaces_chunks_using_document_id(indexing):
 def test_document_changed_before_write(indexing, latest_row, status):
     client, connection, _, _ = indexing
     connection.fetchval.side_effect = ["Original", latest_row]
-    assert client.post("/documents", json={"document_id": 42}).status_code == status
+    assert (
+        client.post(
+            "/documents", json={"document_id": 42, "status": "modified"}
+        ).status_code
+        == status
+    )
     connection.execute.assert_not_called()
 
 
@@ -111,13 +154,23 @@ def test_document_changed_before_write(indexing, latest_row, status):
 def test_unavailable_database(indexing, error):
     client, connection, _, _ = indexing
     connection.fetchval.side_effect = error
-    assert client.post("/documents", json={"document_id": 42}).status_code == 503
+    assert (
+        client.post(
+            "/documents", json={"document_id": 42, "status": "modified"}
+        ).status_code
+        == 503
+    )
 
 
 def test_insert_failure_rolls_back(indexing):
     client, connection, _, _ = indexing
     connection.executemany.side_effect = asyncpg.UniqueViolationError
-    assert client.post("/documents", json={"document_id": 42}).status_code == 500
+    assert (
+        client.post(
+            "/documents", json={"document_id": 42, "status": "modified"}
+        ).status_code
+        == 500
+    )
     connection.execute.assert_awaited_once()
     assert (
         connection.transaction.return_value.__aexit__.await_args.args[0]
@@ -128,7 +181,12 @@ def test_insert_failure_rolls_back(indexing):
 def test_failed_inference_keeps_existing_chunks(indexing):
     client, connection, model, _ = indexing
     model.encode.side_effect = RuntimeError
-    assert client.post("/documents", json={"document_id": 42}).status_code == 500
+    assert (
+        client.post(
+            "/documents", json={"document_id": 42, "status": "modified"}
+        ).status_code
+        == 500
+    )
     connection.transaction.assert_not_called()
     connection.execute.assert_not_called()
 
@@ -137,7 +195,7 @@ def test_inference_overload_returns_503(indexing, monkeypatch):
     client, connection, _, _ = indexing
     encode = AsyncMock(side_effect=embeddings.InferenceUnavailable)
     monkeypatch.setattr(embeddings.Embeddings, "encode", encode)
-    response = client.post("/documents", json={"document_id": 42})
+    response = client.post("/documents", json={"document_id": 42, "status": "modified"})
     assert response.status_code == 503
     assert response.json() == {"detail": "Embedding inference is busy"}
     connection.transaction.assert_not_called()
