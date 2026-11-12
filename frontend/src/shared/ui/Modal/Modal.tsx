@@ -15,6 +15,10 @@ interface ModalProps {
 /**
  * Modal built on the native <dialog>: the browser gives us the top layer, focus trapping,
  * Esc handling and an inert page behind it, so we only sync it with the `open` prop.
+ *
+ * On open the browser focuses the first focusable element, which is the close button.
+ * Mark another element with `data-autofocus` to start there instead, e.g. the first field
+ * of a form. (React's `autoFocus` does not help: it focuses on mount, before the dialog opens.)
  */
 export function Modal({ open, onClose, title, description, className, children }: ModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
@@ -26,7 +30,10 @@ export function Modal({ open, onClose, title, description, className, children }
     const dialog = dialogRef.current
     if (!dialog) return
 
-    if (open && !dialog.open) dialog.showModal()
+    if (open && !dialog.open) {
+      dialog.showModal()
+      dialog.querySelector<HTMLElement>("[data-autofocus]")?.focus()
+    }
     if (!open && dialog.open) dialog.close()
   }, [open])
 
