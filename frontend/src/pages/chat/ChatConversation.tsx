@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import type { SubmitEvent } from "react"
-import { AppHeader } from "../../shared/ui/AppHeader/AppHeader"
 import { ArrowRightIcon } from "../../shared/ui/icons/icons"
 import { Logo } from "../../shared/ui/Logo/Logo"
 import type { ChatMessage as Message, ChatTransport } from "./chatApi"
@@ -303,10 +302,8 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
   const today = new Date().toDateString()
 
   return (
-    <div className={styles.page}>
-      <AppHeader initial={initial} activePage="chat" />
-
-      <main>
+    <div className={styles.chat}>
+      <div className={styles.content}>
         <div className={styles.intro}>
           <h1>Чат с AI Buddy</h1>
           <p>Задавай вопросы о проекте, задачах и работе команды</p>
@@ -462,7 +459,7 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
         </section>
 
         <p className={styles.notice}>ИИ может ошибаться. Проверяйте важную информацию.</p>
-      </main>
+      </div>
     </div>
   )
 }

@@ -2,7 +2,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { createRoot } from "react-dom/client"
 import "@fontsource-variable/manrope"
 import "../../index.css"
+import { AppHeader } from "../../shared/ui/AppHeader/AppHeader"
 import { ChatConversation } from "./ChatConversation"
+import styles from "./ChatPage.module.css"
 import type { ChatMessage, ChatTransport } from "./chatApi"
 import demoAnswer from "./demoAnswer.md?raw"
 
@@ -120,7 +122,12 @@ const root = document.getElementById("root")
 if (import.meta.env.DEV && root) {
   createRoot(root).render(
     <QueryClientProvider client={new QueryClient()}>
-      <ChatConversation userId={0} displayName="Г" transport={transport} />
+      <div className={styles.preview}>
+        <AppHeader initial="Г" activePage="chat" />
+        <main>
+          <ChatConversation userId={0} displayName="Г" transport={transport} />
+        </main>
+      </div>
     </QueryClientProvider>,
   )
 }

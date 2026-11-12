@@ -22,7 +22,7 @@ describe("apiFetch", () => {
   it("keeps headers and options passed by the caller", async () => {
     const fetchMock = mockFetch(new Response(null, { status: 200 }))
 
-    await apiFetch("/api/login", {
+    await apiFetch("/api/auth/login", {
       method: "POST",
       headers: { Accept: "text/plain", "Content-Type": "application/json" },
       body: "{}",
@@ -39,7 +39,7 @@ describe("apiFetch", () => {
   it("resolves to undefined when the response body is empty", async () => {
     mockFetch(new Response(null, { status: 204 }))
 
-    await expect(apiFetch("/api/login", { method: "POST" })).resolves.toBeUndefined()
+    await expect(apiFetch("/api/auth/login", { method: "POST" })).resolves.toBeUndefined()
   })
 
   it("throws ApiError with the response status for non-2xx responses", async () => {

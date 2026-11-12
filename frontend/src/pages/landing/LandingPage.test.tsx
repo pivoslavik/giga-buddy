@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it } from "vitest"
+import { mockApi, renderApp, status } from "../../test/app"
 import { LandingPage } from "./LandingPage"
 
 describe("LandingPage", () => {
@@ -25,11 +26,14 @@ describe("LandingPage", () => {
 
   it("opens the login modal from the call to action and closes it", async () => {
     const user = userEvent.setup()
-    render(<LandingPage />)
+    mockApi({ "GET /api/user": () => status(401) })
+    // the login form inside the modal needs the router and the query cache
+    renderApp("/welcome")
+    const callToAction = await screen.findByRole("button", { name: "Войти в сервис" })
     const loginDialog = screen.getByRole("dialog", { hidden: true }) as HTMLDialogElement
     expect(loginDialog.open).toBe(false)
 
-    await user.click(screen.getByRole("button", { name: "Войти в сервис" }))
+    await user.click(callToAction)
 
     expect(screen.getByRole("dialog", { name: "Вход в AI Buddy" })).toBe(loginDialog)
     expect(loginDialog.open).toBe(true)

@@ -1,8 +1,15 @@
-.page {
+.chat {
   --chat-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --chat-cinematic-out: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Shared header, layout padding, chat title and notice around the panel. */
+  --chat-layout-space: 285px;
 
-  min-height: 100dvh;
+  max-width: 1130px;
+  margin-inline: auto;
+}
+
+.preview {
+  min-height: calc(100dvh / var(--ui-zoom));
   padding-inline: max(16px, calc((100% - 1130px) / 2));
   background: #f4f7fe;
 }
@@ -27,12 +34,16 @@
 
 .panel {
   display: flex;
-  height: clamp(405px, calc(100dvh - 207px), 900px);
+  height: clamp(405px, calc(100dvh / var(--ui-zoom) - var(--chat-layout-space)), 900px);
   flex-direction: column;
   padding: 0 16px 18px;
   border: 1px solid #dcd8fc;
   border-radius: 18px;
   background: #fafbfe;
+}
+
+.preview .panel {
+  height: clamp(405px, calc(100dvh / var(--ui-zoom) - 207px), 900px);
 }
 
 .panelHeader {
@@ -159,13 +170,17 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 12px 8px clamp(20px, 10dvh, 108px);
+  padding: 12px 8px clamp(20px, calc(10dvh / var(--ui-zoom)), 108px);
   text-align: center;
 }
 
 .emptyIllustration {
   position: relative;
-  width: min(100%, clamp(164px, 25vw, 332px), clamp(128px, 38dvh, 332px));
+  width: min(
+    100%,
+    clamp(164px, calc(25vw / var(--ui-zoom)), 332px),
+    clamp(128px, calc(38dvh / var(--ui-zoom)), 332px)
+  );
   flex: none;
   overflow: clip;
 }
@@ -656,12 +671,12 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .page {
+  .preview {
     /* Keep the entry offset from expanding the document's scrollable area. */
     overflow-y: clip;
   }
 
-  .page > main {
+  .content {
     animation: chat-enter 1150ms var(--chat-cinematic-out);
   }
 
@@ -756,9 +771,16 @@
   }
 }
 
+@media (max-width: 720px) {
+  .chat {
+    /* The shared header moves the navigation onto a second row. */
+    --chat-layout-space: 335px;
+  }
+}
+
 @media (max-width: 700px) {
   .emptyState {
-    padding-bottom: clamp(16px, 5dvh, 36px);
+    padding-bottom: clamp(16px, calc(5dvh / var(--ui-zoom)), 36px);
   }
 
   .intro {
@@ -775,8 +797,12 @@
   }
 
   .panel {
-    height: max(390px, calc(100dvh - 235px));
+    height: max(390px, calc(100dvh / var(--ui-zoom) - var(--chat-layout-space)));
     padding: 0 10px 11px;
+  }
+
+  .preview .panel {
+    height: max(390px, calc(100dvh / var(--ui-zoom) - 235px));
   }
 
   .panelHeader {

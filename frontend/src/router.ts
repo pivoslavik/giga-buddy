@@ -7,9 +7,11 @@ import {
   type RouterHistory,
 } from "@tanstack/react-router"
 import { sessionQueryOptions } from "./entities/session/session"
+import { AppLayout } from "./pages/app-layout/AppLayout"
 import { ChatPage } from "./pages/chat/ChatPage"
 import { HomePage } from "./pages/home/HomePage"
 import { LandingPage } from "./pages/landing/LandingPage"
+import { KnowledgeBasePage, ProfilePage } from "./pages/placeholder/PlaceholderPages"
 
 export interface RouterContext {
   queryClient: QueryClient
@@ -30,7 +32,10 @@ const welcomeRoute = createRoute({
   component: LandingPage,
 })
 
-/** Pathless layout for every page that needs a session: guests are sent to the landing page. */
+/**
+ * Pathless layout for every page that needs a session: guests are sent to the landing page,
+ * users get the header with the sections of the app.
+ */
 const authenticatedRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: "authenticated",
@@ -41,6 +46,7 @@ const authenticatedRoute = createRoute({
     }
     return { user }
   },
+  component: AppLayout,
 })
 
 const homeRoute = createRoute({
@@ -49,15 +55,27 @@ const homeRoute = createRoute({
   component: HomePage,
 })
 
+const profileRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: "/profile",
+  component: ProfilePage,
+})
+
 const chatRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: "/chat",
   component: ChatPage,
 })
 
+const knowledgeBaseRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: "/knowledge-base",
+  component: KnowledgeBasePage,
+})
+
 const routeTree = rootRoute.addChildren([
   welcomeRoute,
-  authenticatedRoute.addChildren([homeRoute, chatRoute]),
+  authenticatedRoute.addChildren([homeRoute, profileRoute, chatRoute, knowledgeBaseRoute]),
 ])
 
 export function createAppRouter(queryClient: QueryClient, history?: RouterHistory) {

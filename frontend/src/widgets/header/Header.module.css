@@ -1,0 +1,98 @@
+/* the side columns are equal, so the navigation stays in the middle of the page */
+.header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  grid-template-areas: "logo nav user";
+  align-items: center;
+  gap: 16px 24px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--color-border-strong);
+}
+
+.logo {
+  grid-area: logo;
+  justify-self: start;
+  border-radius: var(--radius-s);
+  color: inherit;
+  font-size: 26px;
+  text-decoration: none;
+}
+
+.logo > * {
+  font-size: inherit;
+}
+
+.nav {
+  grid-area: nav;
+}
+
+.navList {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.navLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 24px;
+  border-radius: var(--radius-pill);
+  color: var(--color-text);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.15s ease;
+}
+
+@media (hover: hover) {
+  .navLink:hover {
+    background: rgb(11 11 15 / 0.05);
+  }
+}
+
+.navLink[aria-current="page"] {
+  background: var(--color-accent-green);
+}
+
+.user {
+  grid-area: user;
+  justify-self: end;
+}
+
+/* on phones the sections move to their own row and share its width */
+@media (max-width: 720px) {
+  .header {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "logo user"
+      "nav nav";
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+
+  .logo {
+    font-size: 22px;
+  }
+
+  .navList {
+    justify-content: space-between;
+    gap: 4px;
+  }
+
+  .navList > li {
+    flex: 1 1 auto;
+  }
+
+  .navLink {
+    width: 100%;
+    min-height: 40px;
+    padding: 0 12px;
+    font-size: 15px;
+  }
+}
