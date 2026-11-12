@@ -29,10 +29,13 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
   const [draft, setDraft] = useState("")
   const [outgoing, setOutgoing] = useState<Message>()
   const [partial, setPartial] = useState("")
+  const [newReplyId, setNewReplyId] = useState<string>()
   const [sendError, setSendError] = useState(false)
   const request = useRef<AbortController | null>(null)
   const timeline = useRef<HTMLDivElement>(null)
   const followTail = useRef(true)
+  const smoothTop = useRef<number | null>(null)
+  const lastLayout = useRef<{ target: number; outgoing?: Message; replyId?: string }>(undefined)
 
   const initial = Array.from(displayName.trim())[0]?.toLocaleUpperCase("ru-RU") || "?"
   const sending = Boolean(outgoing)
@@ -48,8 +51,35 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
 
   useLayoutEffect(() => {
     const element = timeline.current
-    if (element && followTail.current) element.scrollTop = element.scrollHeight
-  }, [history.data, outgoing, partial])
+    if (!element) return
+
+    const target = Math.max(0, element.scrollHeight - element.clientHeight)
+    const previous = lastLayout.current
+    lastLayout.current = { target, outgoing, replyId: newReplyId }
+    if (
+      !followTail.current ||
+      target === previous?.target ||
+      Math.abs(target - element.scrollTop) <= 1
+    )
+      return
+
+    const newMessage =
+      (outgoing && outgoing !== previous?.outgoing) ||
+      (newReplyId && newReplyId !== previous?.replyId)
+    if (
+      newMessage &&
+      !partial &&
+      target > element.scrollTop &&
+      window.matchMedia?.("(prefers-reduced-motion: no-preference)").matches
+    ) {
+      smoothTop.current = element.scrollTop
+      element.scrollTo({ top: target, behavior: "smooth" })
+    } else {
+      // A growing reply follows the new bottom immediately, even during an earlier smooth scroll.
+      smoothTop.current = null
+      element.scrollTop = target
+    }
+  }, [history.data, outgoing, partial, newReplyId])
 
   async function send(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -58,7 +88,6 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
 
     const controller = new AbortController()
     request.current = controller
-    followTail.current = true
     setDraft("")
     setSendError(false)
     setOutgoing({
@@ -68,11 +97,21 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
       created_at: new Date().toISOString(),
     })
 
+    let showedPartial = false
     try {
       await transport.send(message, controller.signal, (delta) => {
-        if (!controller.signal.aborted) setPartial((current) => current + delta)
+        if (!controller.signal.aborted && delta) {
+          showedPartial = true
+          setPartial((current) => current + delta)
+        }
       })
-      if (!controller.signal.aborted) await history.refetch()
+      if (!controller.signal.aborted) {
+        const result = await history.refetch()
+        if (!controller.signal.aborted && !showedPartial) {
+          const reply = result.data?.findLast((entry) => entry.role === "assistant")
+          if (reply && !history.data.some((entry) => entry.id === reply.id)) setNewReplyId(reply.id)
+        }
+      }
     } catch {
       if (!controller.signal.aborted) {
         setSendError(true)
@@ -114,7 +153,23 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
             aria-label="История сообщений"
             onScroll={(event) => {
               const { scrollHeight, clientHeight, scrollTop } = event.currentTarget
-              followTail.current = scrollHeight - clientHeight - scrollTop < 48
+              const atBottom = scrollHeight - clientHeight - scrollTop <= 2
+              if (smoothTop.current !== null && scrollTop >= smoothTop.current && !atBottom) {
+                smoothTop.current = scrollTop
+                return
+              }
+              smoothTop.current = null
+              followTail.current = atBottom
+            }}
+            onWheel={(event) => {
+              if (event.deltaY < 0 && smoothTop.current !== null) {
+                smoothTop.current = null
+                followTail.current = false
+                event.currentTarget.scrollTo({
+                  top: event.currentTarget.scrollTop,
+                  behavior: "instant",
+                })
+              }
             }}
           >
             {history.isPending && <p className={styles.state}>Загружаем историю…</p>}
@@ -144,7 +199,19 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
                       {day === today ? "Сегодня" : dateFormat.format(date)}
                     </p>
                   )}
-                  <ChatMessage message={message} initial={initial} />
+                  <ChatMessage
+                    message={message}
+                    initial={initial}
+                    entering={
+                      message === outgoing ||
+                      message.id === "pending-assistant" ||
+                      message.id === newReplyId
+                    }
+                    streaming={message.id === "pending-assistant"}
+                    onEnterEnd={
+                      message.id === newReplyId ? () => setNewReplyId(undefined) : undefined
+                    }
+                  />
                 </div>
               )
             })}
@@ -173,6 +240,7 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
               type="submit"
               aria-label="Отправить сообщение"
               disabled={sending || !history.isSuccess}
+              data-sending={sending || undefined}
             >
               <ArrowRightIcon />
             </button>

@@ -22,7 +22,21 @@ const markdownComponents: Components = {
   },
 }
 
-export function ChatMessage({ message, initial }: { message: Message; initial: string }) {
+interface ChatMessageProps {
+  message: Message
+  initial: string
+  entering: boolean
+  streaming: boolean
+  onEnterEnd?: () => void
+}
+
+export function ChatMessage({
+  message,
+  initial,
+  entering,
+  streaming,
+  onEnterEnd,
+}: ChatMessageProps) {
   const assistant = message.role === "assistant"
   const [copyStatus, setCopyStatus] = useState("")
 
@@ -39,6 +53,11 @@ export function ChatMessage({ message, initial }: { message: Message; initial: s
     <article
       className={`${styles.message} ${assistant ? styles.assistant : styles.user}`}
       aria-label={assistant ? "AI Buddy" : "Вы"}
+      data-entering={entering || undefined}
+      data-streaming={streaming || undefined}
+      onAnimationEnd={(event) => {
+        if (event.target === event.currentTarget) onEnterEnd?.()
+      }}
     >
       <span className={styles.messageAvatar} aria-hidden="true">
         {assistant ? <LogoMark /> : initial}
@@ -61,7 +80,9 @@ export function ChatMessage({ message, initial }: { message: Message; initial: s
               </svg>
               Копировать
             </button>
-            <span role="status">{copyStatus}</span>
+            <span role="status">
+              {copyStatus && <span className={styles.copyFeedback}>{copyStatus}</span>}
+            </span>
           </div>
         )}
       </div>

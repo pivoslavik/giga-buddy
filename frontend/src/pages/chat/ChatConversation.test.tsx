@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { act, render, screen, waitFor } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 import { ChatConversation } from "./ChatConversation"
@@ -45,6 +45,7 @@ describe("chat", () => {
     await userEvent.click(screen.getByRole("button", { name: "Повторить" }))
 
     expect(await screen.findByText("Подготовка", { selector: "strong" })).toBeInTheDocument()
+    expect(screen.getByRole("article", { name: "AI Buddy" })).not.toHaveAttribute("data-entering")
     expect(screen.getByText("npm run dev", { selector: "pre code" })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Документ" })).toHaveAttribute(
       "href",
@@ -98,6 +99,10 @@ describe("chat", () => {
     stream?.close()
 
     expect(await screen.findByText("Подготовка")).toBeInTheDocument()
+    expect(screen.getByRole("article", { name: "AI Buddy" })).toHaveAttribute(
+      "data-entering",
+      "true",
+    )
     expect(fetchMock).toHaveBeenCalledTimes(3)
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Отправить сообщение" })).toBeEnabled(),
@@ -125,11 +130,16 @@ describe("chat", () => {
   it("renders decoded reply chunks before the response completes", async () => {
     const done = deferred<void>()
     let onDelta: (delta: string) => void = () => undefined
+    const savedReply: ChatMessage = {
+      ...assistantMessage,
+      id: "assistant-2",
+      content: "Часть ответа",
+    }
     const transport: ChatTransport = {
       load: vi
         .fn()
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([{ ...assistantMessage, content: "Часть ответа" }]),
+        .mockResolvedValueOnce([assistantMessage])
+        .mockResolvedValueOnce([assistantMessage, savedReply]),
       send: async (_message, _signal, receive) => {
         onDelta = receive
         return done.promise
@@ -137,12 +147,75 @@ describe("chat", () => {
     }
     renderChat(transport)
 
-    await screen.findByText("Напиши первое сообщение.")
+    await screen.findByText("Подготовка")
+    const historyItem = screen.getByRole("article", { name: "AI Buddy" })
     await userEvent.type(screen.getByRole("textbox"), "Вопрос{Enter}")
+    expect(screen.getByRole("article", { name: "Вы" })).toHaveAttribute("data-entering", "true")
     act(() => onDelta("Часть "))
     expect(screen.getByText("Часть")).toBeInTheDocument()
+    const liveReply = screen.getByText("Часть").closest("article")
+    expect(liveReply).toHaveAttribute("data-entering", "true")
     act(() => onDelta("ответа"))
-    expect(screen.getByText("Часть ответа")).toBeInTheDocument()
+    expect(screen.getByText("Часть ответа").closest("article")).toBe(liveReply)
+    expect(historyItem).not.toHaveAttribute("data-entering")
+
+    done.resolve(undefined)
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Отправить сообщение" })).toBeEnabled(),
+    )
+    expect(screen.getByText("Подготовка").closest("article")).toBe(historyItem)
+    expect(screen.getByText("Часть ответа").closest("article")).not.toHaveAttribute("data-entering")
+  })
+
+  it("smooths the new message once, follows chunks immediately and respects scrolling up", async () => {
+    const done = deferred<void>()
+    let onDelta: (delta: string) => void = () => undefined
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }))
+    renderChat({
+      load: async () => [],
+      send: async (_message, _signal, receive) => {
+        onDelta = receive
+        return done.promise
+      },
+    })
+
+    await screen.findByText("Напиши первое сообщение.")
+    const log = screen.getByRole("log")
+    const scrollTo = vi.fn()
+    let height = 300
+    Object.defineProperties(log, {
+      scrollHeight: { get: () => height },
+      clientHeight: { value: 100 },
+      scrollTo: { value: scrollTo },
+    })
+    log.scrollTop = 200
+    fireEvent.scroll(log)
+
+    height = 350
+    await userEvent.type(screen.getByRole("textbox"), "Вопрос{Enter}")
+    expect(scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 250, behavior: "smooth" })
+    log.scrollTop = 220
+    fireEvent.scroll(log)
+
+    height = 370
+    act(() => onDelta("Первый фрагмент "))
+    expect(log.scrollTop).toBe(270)
+    height = 400
+    act(() => onDelta("и второй"))
+    expect(log.scrollTop).toBe(300)
+    expect(scrollTo).toHaveBeenCalledOnce()
+
+    log.scrollTop = 200
+    fireEvent.scroll(log)
+    height = 430
+    act(() => onDelta(" и третий"))
+    expect(log.scrollTop).toBe(200)
+
+    log.scrollTop = 330
+    fireEvent.scroll(log)
+    height = 450
+    act(() => onDelta(" и четвёртый"))
+    expect(log.scrollTop).toBe(350)
 
     done.resolve(undefined)
     await waitFor(() =>

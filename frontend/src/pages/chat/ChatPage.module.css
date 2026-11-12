@@ -1,4 +1,6 @@
 .page {
+  --chat-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+
   min-height: 100dvh;
   padding-inline: max(16px, calc((100% - 1130px) / 2));
   background: #f4f7fe;
@@ -231,10 +233,6 @@
   vertical-align: middle;
 }
 
-.referenceLink:hover {
-  text-decoration: underline;
-}
-
 .referenceLink svg {
   width: 17px;
   flex: none;
@@ -263,10 +261,6 @@
   border: 0;
   background: transparent;
   color: inherit;
-}
-
-.copy:hover {
-  text-decoration: underline;
 }
 
 .copy svg {
@@ -325,6 +319,10 @@
   opacity: 1;
 }
 
+.composer input:focus {
+  border-color: #a99af4;
+}
+
 .composer button {
   display: grid;
   width: 45px;
@@ -355,6 +353,127 @@
   font-size: 11px;
   font-weight: 650;
   text-align: center;
+}
+
+@media (hover: hover) {
+  .referenceLink:hover,
+  .copy:hover {
+    text-decoration: underline;
+  }
+
+  .referenceLink:hover,
+  .state button:hover:not(:disabled) {
+    background-color: rgb(104 72 255 / 0.06);
+  }
+
+  .composer button:hover:not(:disabled) {
+    background-color: #14e97d;
+  }
+}
+
+.intro h1,
+.intro p,
+.panel,
+.panelHeader,
+.composer,
+.notice {
+  animation: chat-enter 210ms var(--chat-ease-out) var(--enter-delay, 0ms) backwards;
+}
+
+.intro p {
+  --enter-delay: 20ms;
+}
+
+.panel {
+  --enter-delay: 35ms;
+}
+
+.panelHeader {
+  --enter-delay: 50ms;
+}
+
+.composer,
+.notice {
+  --enter-delay: 65ms;
+}
+
+.message[data-entering] {
+  animation: chat-message-enter 200ms var(--chat-ease-out);
+}
+
+.user[data-entering] {
+  --message-shift: 3px;
+
+  animation-duration: 160ms;
+}
+
+.pending,
+.message[data-streaming] .messageAvatar svg {
+  animation: chat-waiting 1.15s ease-in-out infinite;
+}
+
+.copyFeedback {
+  display: inline-block;
+  animation: chat-feedback 150ms var(--chat-ease-out);
+}
+
+.composer button[data-sending] svg {
+  animation: chat-send 180ms var(--chat-ease-out);
+}
+
+.referenceLink,
+.copy,
+.state button,
+.composer button {
+  transition:
+    background-color 130ms var(--chat-ease-out),
+    translate 130ms var(--chat-ease-out),
+    opacity 130ms var(--chat-ease-out);
+}
+
+.composer input {
+  transition: border-color 130ms var(--chat-ease-out);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .composer button:active:not(:disabled),
+  .state button:active:not(:disabled),
+  .referenceLink:active,
+  .copy:active {
+    translate: 0 1px;
+  }
+}
+
+@keyframes chat-enter {
+  from {
+    opacity: 0.82;
+    translate: 0 4px;
+  }
+}
+
+@keyframes chat-message-enter {
+  from {
+    opacity: 0.64;
+    translate: 0 var(--message-shift, 4px);
+  }
+}
+
+@keyframes chat-waiting {
+  50% {
+    opacity: 0.82;
+  }
+}
+
+@keyframes chat-feedback {
+  from {
+    opacity: 0.55;
+  }
+}
+
+@keyframes chat-send {
+  45% {
+    translate: 0 -3px;
+  }
 }
 
 @media (max-width: 700px) {
