@@ -8,8 +8,12 @@ export class ApiError extends Error {
   }
 }
 
-/** Login, refresh and logout answer 401 for their own reasons, so a refresh would not help. */
-const AUTH_PATH_PREFIX = "/api/auth/"
+/**
+ * Login and refresh answer 401 for their own reasons (wrong credentials, no session), so a refresh
+ * would not help there. Logout is refreshed like any other request: after 15 idle minutes, e.g. on
+ * the main page, which sends no requests, its access token is stale while the session still lives.
+ */
+const NO_REFRESH_PATHS = new Set(["/api/auth/login", "/api/auth/refresh"])
 
 function send(path: string, init: RequestInit) {
   const baseUrl = import.meta.env.VITE_API_URL ?? ""
@@ -56,7 +60,7 @@ function refreshTokens(): Promise<boolean> {
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   let response = await send(path, init)
 
-  if (response.status === 401 && !path.startsWith(AUTH_PATH_PREFIX) && (await refreshTokens())) {
+  if (response.status === 401 && !NO_REFRESH_PATHS.has(path) && (await refreshTokens())) {
     response = await send(path, init)
   }
 

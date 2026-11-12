@@ -86,8 +86,9 @@ shown as wrong credentials, anything else as "try again later".
 The access token lives 15 minutes and the refresh token a week. When a request gets `401`,
 `apiFetch` calls `POST /api/auth/refresh` and sends the request once more; requests that fail
 together share one refresh. If the refresh fails too, the `401` stands and the session is over, so
-a page load lands on `/welcome`. `/api/auth/*` answers are never retried: there a `401` means wrong
-credentials or no session at all.
+a page load lands on `/welcome`. Login and refresh answers are never retried: there a `401` means
+wrong credentials or no session at all. Logout is, like any other request: after 15 idle minutes
+its access token may be stale while the session still lives.
 
 "Выйти из аккаунта" in the avatar menu of the header sends `POST /api/auth/logout`: only the
 backend can expire the httpOnly cookies. The session is re-read, and once it is gone the user lands

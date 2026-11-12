@@ -19,6 +19,7 @@ function expiredAccessToken(refresh: () => Response | Promise<Response> = () => 
   const fetchMock = mockApi({
     "GET /api/user": () => (tokenIsValid ? json({ id: 1 }) : status(401)),
     "POST /api/chat": () => (tokenIsValid ? json({ answer: "hi" }) : status(401)),
+    "POST /api/auth/logout": () => (tokenIsValid ? status(204) : status(401)),
     "POST /api/auth/refresh": async () => {
       const response = await refresh()
       tokenIsValid = response.ok
@@ -148,7 +149,19 @@ describe("apiFetch with an expired access token", () => {
     ])
   })
 
-  it.each(["/api/auth/login", "/api/auth/logout", "/api/auth/refresh"])(
+  it("refreshes before logging out, so a stale access token does not keep the session alive", async () => {
+    const fetchMock = expiredAccessToken()
+
+    await expect(apiFetch("/api/auth/logout", { method: "POST" })).resolves.toBeUndefined()
+
+    expect(requestsOf(fetchMock)).toEqual([
+      "POST /api/auth/logout",
+      "POST /api/auth/refresh",
+      "POST /api/auth/logout",
+    ])
+  })
+
+  it.each(["/api/auth/login", "/api/auth/refresh"])(
     "does not refresh when %s answers 401",
     async (path) => {
       const fetchMock = mockApi({ [`POST ${path}`]: () => status(401) })
