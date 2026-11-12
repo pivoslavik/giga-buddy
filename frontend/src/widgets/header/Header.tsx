@@ -1,9 +1,7 @@
-import { getRouteApi, Link } from "@tanstack/react-router"
-import { Avatar } from "../../shared/ui/Avatar/Avatar"
+import { Link } from "@tanstack/react-router"
 import { Logo } from "../../shared/ui/Logo/Logo"
 import styles from "./Header.module.css"
-
-const authenticatedRoute = getRouteApi("/authenticated")
+import { UserMenu } from "./UserMenu"
 
 const NAV_ITEMS = [
   // every path starts with "/", so the main page is active only on itself
@@ -14,8 +12,6 @@ const NAV_ITEMS = [
 
 /** Header of the app pages: the logo, sections of the app and the current user. */
 export function Header() {
-  const { user } = authenticatedRoute.useRouteContext()
-
   return (
     <header className={styles.header}>
       <Link to="/" className={styles.logo} aria-label="AI Buddy, на главную">
@@ -35,7 +31,7 @@ export function Header() {
       </nav>
 
       <div className={styles.user}>
-        <Avatar name={user.display_name || user.username} />
+        <UserMenu />
       </div>
     </header>
   )

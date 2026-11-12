@@ -107,6 +107,14 @@ export function EyeOffIcon(props: IconProps) {
   )
 }
 
+export function LogoutIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11" />
+    </BaseIcon>
+  )
+}
+
 export function SparkleIcon(props: IconProps) {
   return (
     <BaseIcon fill="currentColor" stroke="none" {...props}>

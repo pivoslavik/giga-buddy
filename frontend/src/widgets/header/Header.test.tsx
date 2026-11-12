@@ -51,11 +51,4 @@ describe("Header", () => {
     expect(await screen.findByRole("heading", { name: "Привет, Аня!" })).toBeVisible()
     expect(router.state.location.pathname).toBe("/")
   })
-
-  it("shows the first letter of the user's name", async () => {
-    renderWithUser("/")
-    await findNavigation()
-
-    expect(screen.getByRole("banner")).toHaveTextContent(/А$/)
-  })
 })
