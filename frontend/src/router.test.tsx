@@ -18,7 +18,7 @@ describe("session-based routing", () => {
     expect(router.state.location.pathname).toBe("/welcome")
   })
 
-  it.each(["/", "/profile", "/chat"])(
+  it.each(["/", "/profile", "/chat", "/knowledge-base"])(
     "sends guests from %s, which needs a session, to the landing page",
     async (path) => {
       const { router } = renderWithSession(path, null)

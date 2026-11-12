@@ -37,6 +37,8 @@ export interface FaqItem {
   answer: string
   /** A shell command shown under the answer, ready to copy. */
   command?: string
+  /** A page of the app where the answer continues. */
+  link?: { to: "/knowledge-base" | "/chat"; label: string }
 }
 
 export const FAQ: FaqItem[] = [
@@ -49,6 +51,7 @@ export const FAQ: FaqItem[] = [
     question: "Где найти документацию проекта?",
     answer:
       "В базе знаний AI Buddy: там собраны инструкции по окружению, архитектуре и процессам команды. Если нужного документа нет, спроси AI Buddy в чате.",
+    link: { to: "/knowledge-base", label: "Открыть базу знаний" },
   },
   {
     question: "Что делать, если не хватает доступа?",

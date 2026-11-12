@@ -1,3 +1,5 @@
+import { Link } from "@tanstack/react-router"
+import { ArrowRightIcon } from "../../shared/ui/icons/icons"
 import styles from "./Faq.module.css"
 import { HomeCard } from "./HomeCard"
 import { FAQ } from "./homeContent"
@@ -11,7 +13,7 @@ export function Faq() {
   return (
     <HomeCard title="Частые вопросы" subtitle="Ответы на вопросы, с которыми приходят к AI Buddy">
       <div className={styles.list}>
-        {FAQ.map(({ question, answer, command }, index) => (
+        {FAQ.map(({ question, answer, command, link }, index) => (
           <details key={question} name="faq" className={styles.item} open={index === 0}>
             <summary className={styles.question}>
               {question}
@@ -24,6 +26,12 @@ export function Faq() {
                 <pre className={styles.command}>
                   <code>{command}</code>
                 </pre>
+              )}
+              {link && (
+                <Link to={link.to} className={styles.link}>
+                  {link.label}
+                  <ArrowRightIcon />
+                </Link>
               )}
             </div>
           </details>
