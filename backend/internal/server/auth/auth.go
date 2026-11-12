@@ -24,4 +24,5 @@ func (h *Handler) RegisterRoutes(apiGroup *gin.RouterGroup) {
 
 	authGroup.POST("/login", h.handleLogin)
 	authGroup.POST("/refresh", h.handleRefresh)
+	authGroup.POST("/logout", h.handleLogout)
 }
