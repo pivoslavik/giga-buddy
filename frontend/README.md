@@ -69,7 +69,7 @@ The backend keeps the session in httpOnly cookies, so the frontend learns about 
 
 - `/welcome` — landing page for guests; users with a session are redirected to `/`.
 - every other page lives under the pathless `authenticated` route, which sends guests to `/welcome`
-  and renders the page under the app header (`/`, `/profile`, `/chat`).
+  and renders the page under the app header (`/`, `/profile`, `/chat`, `/knowledge-base`).
 
 The login modal on the landing page sends `{ "username", "password" }` to `POST /api/auth/login`.
 When the backend accepts them, the session is re-read and the user lands on `/`; `400`/`401` is
