@@ -28,7 +28,7 @@
   z-index: 10;
   width: max-content;
   min-width: 260px;
-  max-width: min(320px, calc(100vw - 32px));
+  max-width: min(320px, calc(100vw / var(--ui-zoom) - 32px));
   padding: 8px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-m);
