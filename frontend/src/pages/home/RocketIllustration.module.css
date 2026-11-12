@@ -1,0 +1,39 @@
+/* the rocket and the planet float slightly out of step, the smoke breathes under the rocket */
+.scene {
+  overflow: visible;
+}
+
+.scene > * {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.orbit {
+  fill: none;
+  stroke: #c9b0f5;
+  stroke-width: 5;
+}
+
+.rocket {
+  animation: float 5s ease-in-out infinite;
+}
+
+.planet {
+  animation: float 6s ease-in-out -2s infinite;
+}
+
+.cloud {
+  animation: breathe 5s ease-in-out infinite;
+}
+
+@keyframes float {
+  50% {
+    translate: 0 -6px;
+  }
+}
+
+@keyframes breathe {
+  50% {
+    scale: 1.05;
+  }
+}

@@ -48,7 +48,7 @@ describe("Header", () => {
 
     await user.click(screen.getByRole("link", { name: "AI Buddy, на главную" }))
 
-    expect(await screen.findByRole("heading", { name: "Привет, Аня!" })).toBeVisible()
+    expect(await screen.findByRole("heading", { level: 1, name: "С чего начнём?" })).toBeVisible()
     expect(router.state.location.pathname).toBe("/")
   })
 })

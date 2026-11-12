@@ -31,14 +31,18 @@ describe("session-based routing", () => {
   it("lets users with a session into the app", async () => {
     const { router } = renderWithSession("/", intern)
 
-    expect(await screen.findByRole("heading", { name: "Привет, Аня!" })).toBeInTheDocument()
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "С чего начнём?" }),
+    ).toBeInTheDocument()
     expect(router.state.location.pathname).toBe("/")
   })
 
   it("sends users with a session from the landing page to the app", async () => {
     const { router, fetchMock } = renderWithSession("/welcome", intern)
 
-    expect(await screen.findByRole("heading", { name: "Привет, Аня!" })).toBeInTheDocument()
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "С чего начнём?" }),
+    ).toBeInTheDocument()
     expect(router.state.location.pathname).toBe("/")
     // both guards read the session from the query cache instead of refetching it
     expect(fetchMock).toHaveBeenCalledOnce()
