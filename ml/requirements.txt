@@ -3,6 +3,6 @@ numpy==2.2.6
 pgvector==0.5.1
 sentence-transformers==6.2.0
 fastapi==0.162.2
-aiohttp==3.11.18
+openai==2.30.0
 uvicorn[standard]==0.54.2
 httpx==0.28.1
