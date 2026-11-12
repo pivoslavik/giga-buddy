@@ -31,7 +31,15 @@ docker compose:
 | `down`   | any      | the backend fails with `500`                   |
 | other    | any      | `400`, the form says the credentials are wrong |
 
-Sessions are kept in memory until the dev server restarts; log out from the avatar menu in the
+Like the backend, the mock sets an `access_token` cookie for 15 minutes and a `refresh_token`
+cookie for a week, and swaps the refresh token for a new pair on `POST /api/auth/refresh`. To see
+the refresh without waiting, shorten the access token in `.env.mock.local`:
+
+```bash
+MOCK_ACCESS_TOKEN_TTL_SECONDS=20
+```
+
+Tokens are kept in memory until the dev server restarts; log out from the avatar menu in the
 header. The mock is never part of the production build.
 
 ## Scripts
@@ -74,6 +82,12 @@ The backend keeps the session in httpOnly cookies, so the frontend learns about 
 The login modal on the landing page sends `{ "username", "password" }` to `POST /api/auth/login`.
 When the backend accepts them, the session is re-read and the user lands on `/`; `400`/`401` is
 shown as wrong credentials, anything else as "try again later".
+
+The access token lives 15 minutes and the refresh token a week. When a request gets `401`,
+`apiFetch` calls `POST /api/auth/refresh` and sends the request once more; requests that fail
+together share one refresh. If the refresh fails too, the `401` stands and the session is over, so
+a page load lands on `/welcome`. `/api/auth/*` answers are never retried: there a `401` means wrong
+credentials or no session at all.
 
 "Выйти из аккаунта" in the avatar menu of the header sends `POST /api/auth/logout`: only the
 backend can expire the httpOnly cookies. The session is re-read, and once it is gone the user lands
