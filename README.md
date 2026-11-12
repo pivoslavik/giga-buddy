@@ -1,5 +1,11 @@
 # Giga buddy (Кейс Авито)
 
+### ML service
+
+Run `docker compose up -d --build ml` to build and start the CPU ML service.
+The image bundles the pinned ONNX export of `intfloat/multilingual-e5-small`
+and its tokenizer, so model loading at startup works offline.
+
 ### Google Drive credentials (secrets folder)
 
 Create a `secrets` directory in the project root and place your Google
