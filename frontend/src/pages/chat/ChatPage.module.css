@@ -377,72 +377,6 @@
   }
 }
 
-.intro h1,
-.intro p,
-.panel,
-.panelHeader,
-.timeline,
-.composer,
-.notice {
-  animation: chat-enter var(--enter-duration) var(--enter-ease, var(--chat-cinematic-out))
-    var(--enter-delay, 0ms) backwards;
-}
-
-.intro h1 {
-  --enter-duration: 840ms;
-  --enter-shift: 26px;
-  --enter-opacity: 0.28;
-}
-
-.intro p {
-  --enter-duration: 760ms;
-  --enter-delay: 170ms;
-  --enter-shift: 14px;
-  --enter-opacity: 0.44;
-}
-
-.panel {
-  --enter-duration: 1100ms;
-  --enter-delay: 200ms;
-  --enter-shift: 16px;
-  --enter-opacity: 0.74;
-  --enter-ease: cubic-bezier(0.22, 0.75, 0.24, 1);
-}
-
-.panelHeader,
-.timeline,
-.composer {
-  --enter-ease: var(--chat-cinematic-out);
-}
-
-.panelHeader {
-  --enter-duration: 720ms;
-  --enter-delay: 360ms;
-  --enter-shift: 10px;
-  --enter-opacity: 0.6;
-}
-
-.timeline {
-  --enter-duration: 760ms;
-  --enter-delay: 540ms;
-  --enter-shift: 7px;
-  --enter-opacity: 0.76;
-}
-
-.composer {
-  --enter-duration: 730ms;
-  --enter-delay: 730ms;
-  --enter-shift: 4px;
-  --enter-opacity: 0.92;
-}
-
-.notice {
-  --enter-duration: 600ms;
-  --enter-delay: 900ms;
-  --enter-shift: 5px;
-  --enter-opacity: 0.55;
-}
-
 .message[data-entering] {
   animation: chat-message-enter 620ms var(--chat-cinematic-out);
 }
@@ -491,6 +425,15 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  .page {
+    /* Keep the entry offset from expanding the document's scrollable area. */
+    overflow-y: clip;
+  }
+
+  .page > main {
+    animation: chat-enter 1150ms var(--chat-cinematic-out);
+  }
+
   .composer button:active:not(:disabled),
   .state button:active:not(:disabled),
   .referenceLink:active,
@@ -508,8 +451,8 @@
 
 @keyframes chat-enter {
   from {
-    opacity: var(--enter-opacity);
-    translate: 0 var(--enter-shift);
+    opacity: 0.9;
+    translate: 0 28px;
   }
 }
 
