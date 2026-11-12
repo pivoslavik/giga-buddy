@@ -418,7 +418,9 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
                 data-visible={showScrollButton || undefined}
                 onClick={scrollToLatest}
               >
-                <ArrowRightIcon />
+                <span className={styles.scrollToLatestArrow}>
+                  <ArrowRightIcon />
+                </span>
               </button>
             )}
           </div>

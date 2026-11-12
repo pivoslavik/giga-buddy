@@ -131,11 +131,14 @@
   transition-delay: 0s;
 }
 
-.scrollToLatest svg {
+.scrollToLatestArrow {
+  transition: transform 200ms var(--chat-ease-out);
+}
+
+.scrollToLatestArrow svg {
   width: 21px;
   height: 21px;
   transform: rotate(90deg);
-  transition: translate 200ms var(--chat-ease-out);
 }
 
 @media (hover: hover) {
@@ -145,12 +148,8 @@
 }
 
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-  .scrollToLatest:hover {
-    transform: translateY(-2px);
-  }
-
-  .scrollToLatest:hover svg {
-    translate: 0 4px;
+  .scrollToLatest:hover .scrollToLatestArrow {
+    transform: translateY(4px);
   }
 }
 
@@ -694,7 +693,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .scrollToLatest,
-  .scrollToLatest svg {
+  .scrollToLatestArrow {
     transition: none !important;
   }
 
