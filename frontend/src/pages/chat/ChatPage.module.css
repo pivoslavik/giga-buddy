@@ -1,0 +1,420 @@
+.page {
+  min-height: 100dvh;
+  padding-inline: max(16px, calc((100% - 1130px) / 2));
+  background: #f4f7fe;
+}
+
+.intro {
+  padding: 13px 7px 14px;
+}
+
+.intro h1 {
+  font-size: 35px;
+  font-weight: 850;
+  line-height: 37px;
+  letter-spacing: -0.02em;
+}
+
+.intro p {
+  color: #394766;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.panel {
+  display: flex;
+  height: clamp(405px, calc(100dvh - 207px), 900px);
+  flex-direction: column;
+  padding: 0 16px 18px;
+  border: 1px solid #dcd8fc;
+  border-radius: 18px;
+  background: #fafbfe;
+}
+
+.panelHeader {
+  display: flex;
+  min-height: 47px;
+  flex: none;
+  align-items: center;
+  gap: 25px;
+  padding-inline: 9px;
+  border-bottom: 1px solid #e2dffc;
+}
+
+.panelHeader .buddyLogo {
+  gap: 12px;
+  font-size: 18px;
+  letter-spacing: -0.025em;
+}
+
+.connection {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #6b7c9e;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.connection::before {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #00ed80;
+  content: "";
+}
+
+.connection[data-offline]::before {
+  background: currentColor;
+}
+
+.timeline {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: #e0dff8 transparent;
+  scrollbar-width: thin;
+  margin: 9px -12px 0 0;
+  padding: 0 20px 6px 0;
+}
+
+.day {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0 17px 7px 20px;
+  color: #7888aa;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.day::before,
+.day::after {
+  height: 1px;
+  flex: 1;
+  background: #e2dffc;
+  content: "";
+}
+
+.message {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  color: #171829;
+  font-size: 14px;
+  font-weight: 550;
+  line-height: 18px;
+}
+
+.user {
+  flex-direction: row-reverse;
+}
+
+.messageAvatar {
+  display: grid;
+  width: 37px;
+  height: 37px;
+  flex: none;
+  place-items: center;
+  margin-top: 9px;
+  border: 1px solid #efebff;
+  border-radius: 50%;
+  background: #fbfbff;
+}
+
+.messageAvatar svg {
+  width: 29px;
+}
+
+.user .messageAvatar {
+  width: 33px;
+  height: 33px;
+  margin-top: 12px;
+  border: 0;
+  background: #ddcffb;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.messageBody {
+  min-width: 0;
+  max-width: min(82%, 800px);
+}
+
+.time {
+  display: block;
+  margin: 0 4px 1px;
+  color: #7384a8;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 12px;
+}
+
+.user .time {
+  text-align: end;
+}
+
+.bubble {
+  width: fit-content;
+  max-width: 100%;
+  padding: 7px 13px 8px;
+  overflow-wrap: anywhere;
+  border-radius: 14px;
+  background: #eeedfd;
+}
+
+.assistant .bubble {
+  border-top-left-radius: 5px;
+}
+
+.user .bubble {
+  margin-inline-start: auto;
+  padding-inline: 16px;
+  border-radius: var(--radius-pill);
+  background: #cefadc;
+}
+
+.bubble:has(pre) {
+  width: 553px;
+  padding-block: 5px 7px;
+}
+
+.bubble ol,
+.bubble ul {
+  margin: 0;
+  padding-inline-start: 19px;
+}
+
+.bubble :is(ol, ul) :is(ol, ul) {
+  padding-inline-start: 20px;
+}
+
+.bubble pre {
+  margin: 5px 2px 3px 1px;
+  padding: 4px 17px;
+  overflow: auto;
+  border-radius: 7px;
+  background: #252e33;
+  color: #f3f5f7;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 18px;
+}
+
+.bubble pre code {
+  font-family: Consolas, "Courier New", monospace;
+}
+
+.bubble blockquote {
+  margin: 4px 0;
+  padding-inline-start: 8px;
+  border-inline-start: 2px solid #a99af4;
+}
+
+.referenceLink {
+  display: inline-flex;
+  max-width: 100%;
+  min-height: 28px;
+  align-items: center;
+  gap: 6px;
+  margin: 5px 2px 0;
+  padding: 1px 11px;
+  border: 1px solid #b4a2ff;
+  border-radius: var(--radius-pill);
+  color: #6848ff;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  vertical-align: middle;
+}
+
+.referenceLink:hover {
+  text-decoration: underline;
+}
+
+.referenceLink svg {
+  width: 17px;
+  flex: none;
+  stroke-width: 1.4;
+}
+
+.messageActions {
+  display: none;
+  align-items: center;
+  gap: 7px;
+  margin: 3px 0 -2px 12px;
+  color: #687a9e;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.messageBody:has(pre) .messageActions {
+  display: flex;
+}
+
+.copy {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.copy:hover {
+  text-decoration: underline;
+}
+
+.copy svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 1.2;
+}
+
+.state {
+  margin: 18px 12px;
+  color: #536482;
+  font-size: 14px;
+}
+
+.state button {
+  margin-top: 6px;
+  padding: 3px 9px;
+  border: 1px solid #b4a2ff;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: #4e32b7;
+}
+
+.pending,
+.sendError {
+  margin: 6px 0 0 12px;
+  color: #536482;
+  font-size: 13px;
+}
+
+.sendError {
+  color: #982749;
+}
+
+.composer {
+  display: flex;
+  flex: none;
+  gap: 7px;
+  margin-top: 16px;
+}
+
+.composer input {
+  width: 100%;
+  min-width: 0;
+  height: 39px;
+  padding: 0 18px;
+  border: 1px solid #d9d3fb;
+  border-radius: 13px;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.composer input::placeholder {
+  color: #7888a9;
+  opacity: 1;
+}
+
+.composer button {
+  display: grid;
+  width: 45px;
+  height: 38px;
+  flex: none;
+  place-items: center;
+  align-self: center;
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  background: #24ef89;
+}
+
+.composer button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.composer button svg {
+  width: 22px;
+  height: 22px;
+  transform: rotate(-90deg);
+}
+
+.notice {
+  padding: 10px 0 14px;
+  color: #7384a8;
+  font-size: 11px;
+  font-weight: 650;
+  text-align: center;
+}
+
+@media (max-width: 700px) {
+  .intro {
+    padding-inline: 0;
+  }
+
+  .intro h1 {
+    font-size: 27px;
+    line-height: 1.15;
+  }
+
+  .intro p {
+    font-size: 14px;
+  }
+
+  .panel {
+    height: max(390px, calc(100dvh - 235px));
+    padding: 0 10px 11px;
+  }
+
+  .panelHeader {
+    padding-inline: 3px;
+  }
+
+  .timeline {
+    margin-right: -7px;
+    padding-right: 9px;
+  }
+
+  .day {
+    margin-inline: 3px;
+  }
+
+  .message {
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+
+  .messageAvatar,
+  .user .messageAvatar {
+    width: 28px;
+    height: 28px;
+  }
+
+  .messageAvatar svg {
+    width: 23px;
+  }
+
+  .bubble,
+  .user .bubble {
+    padding-inline: 10px;
+  }
+
+  .composer {
+    margin-top: 10px;
+  }
+
+  .composer input {
+    padding-inline: 11px;
+    font-size: 16px;
+  }
+}

@@ -14,9 +14,10 @@ const user: User = {
 }
 
 function renderApp(path: string, session: User | null) {
-  const fetchMock = vi.fn(async () =>
-    session ? new Response(JSON.stringify(session)) : new Response(null, { status: 401 }),
-  )
+  const fetchMock = vi.fn(async (url: string) => {
+    if (url.endsWith("/api/chat")) return new Response(JSON.stringify({ messages: [] }))
+    return session ? new Response(JSON.stringify(session)) : new Response(null, { status: 401 })
+  })
   vi.stubGlobal("fetch", fetchMock)
 
   const queryClient = new QueryClient()
@@ -52,6 +53,24 @@ describe("session-based routing", () => {
 
     expect(await screen.findByRole("heading", { name: "Привет, Аня!" })).toBeInTheDocument()
     expect(router.state.location.pathname).toBe("/")
+  })
+
+  it("redirects guests from chat before requesting their history", async () => {
+    const { router, fetchMock } = renderApp("/chat", null)
+
+    expect(await screen.findByRole("heading", landingHeading)).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe("/welcome")
+    expect(fetchMock).toHaveBeenCalledOnce()
+  })
+
+  it("opens chat and requests the history for an authenticated user", async () => {
+    const { router, fetchMock } = renderApp("/chat", user)
+
+    expect(await screen.findByRole("heading", { name: "Чат с AI Buddy" })).toBeInTheDocument()
+    expect(await screen.findByText("Напиши первое сообщение.")).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Чат" })).toHaveAttribute("aria-current", "page")
+    expect(router.state.location.pathname).toBe("/chat")
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/api/chat"), expect.any(Object))
   })
 
   it("sends users with a session from the landing page to the app", async () => {

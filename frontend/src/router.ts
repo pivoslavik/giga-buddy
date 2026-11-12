@@ -7,6 +7,7 @@ import {
   type RouterHistory,
 } from "@tanstack/react-router"
 import { sessionQueryOptions } from "./entities/session/session"
+import { ChatPage } from "./pages/chat/ChatPage"
 import { HomePage } from "./pages/home/HomePage"
 import { LandingPage } from "./pages/landing/LandingPage"
 
@@ -48,7 +49,16 @@ const homeRoute = createRoute({
   component: HomePage,
 })
 
-const routeTree = rootRoute.addChildren([welcomeRoute, authenticatedRoute.addChildren([homeRoute])])
+const chatRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: "/chat",
+  component: ChatPage,
+})
+
+const routeTree = rootRoute.addChildren([
+  welcomeRoute,
+  authenticatedRoute.addChildren([homeRoute, chatRoute]),
+])
 
 export function createAppRouter(queryClient: QueryClient, history?: RouterHistory) {
   return createRouter({
