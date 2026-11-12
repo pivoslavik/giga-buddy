@@ -35,12 +35,10 @@ describe("mock API", () => {
     const api = await startMockApi()
     expect((await api("/api/user")).status).toBe(401)
 
-    const response = await api("/api/login", login({ username: "intern", password: "secret" }))
+    const response = await api("/api/auth/login", login({ username: "intern", password: "secret" }))
 
     expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({
-      user: { id: 1, username: "intern", email: "intern@example.com" },
-    })
+    expect(await response.text()).toBe("")
     expect(response.headers.getSetCookie()[0]).toMatch(/HttpOnly/)
 
     const user = await api("/api/user", { headers: { Cookie: sessionCookie(response) } })
@@ -51,17 +49,18 @@ describe("mock API", () => {
   it("answers like the backend to wrong and malformed requests", async () => {
     const api = await startMockApi()
     const statusOf = async (path: string, init?: RequestInit) => (await api(path, init)).status
+    const loginStatus = (body: unknown) => statusOf("/api/auth/login", login(body))
 
-    expect(await statusOf("/api/login", login({ username: "intern", password: "nope" }))).toBe(401)
-    expect(await statusOf("/api/login", login({ username: "intern" }))).toBe(400)
-    expect(await statusOf("/api/login", { method: "POST", body: "not json" })).toBe(400)
-    expect(await statusOf("/api/login", login({ username: "down", password: "x" }))).toBe(500)
+    expect(await loginStatus({ username: "intern", password: "nope" })).toBe(400)
+    expect(await loginStatus({ username: "intern" })).toBe(400)
+    expect(await statusOf("/api/auth/login", { method: "POST", body: "not json" })).toBe(400)
+    expect(await loginStatus({ username: "down", password: "x" })).toBe(500)
     expect(await statusOf("/api/documents")).toBe(404)
   })
 
   it("ends the session on logout", async () => {
     const api = await startMockApi()
-    const response = await api("/api/login", login({ username: "intern", password: "secret" }))
+    const response = await api("/api/auth/login", login({ username: "intern", password: "secret" }))
     const headers = { Cookie: sessionCookie(response) }
 
     expect((await api("/api/auth/logout", { method: "POST", headers })).status).toBe(204)

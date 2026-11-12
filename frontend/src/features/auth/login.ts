@@ -8,16 +8,16 @@ export interface Credentials {
   password: string
 }
 
-/** POST /api/login (#6): on success the backend puts the session into httpOnly cookies. */
+/** POST /api/auth/login (#6, #36): on success the backend puts the tokens into httpOnly cookies. */
 export async function login(credentials: Credentials): Promise<void> {
-  await apiFetch<unknown>("/api/login", {
+  await apiFetch<unknown>("/api/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(credentials),
   })
 }
 
-/** 401 is an unknown user or a wrong password, 400 is a request the backend rejects outright. */
+/** #36 answers 400 to a wrong username or password and to a malformed body; 401 means the same. */
 const WRONG_CREDENTIALS_STATUSES = new Set([400, 401])
 
 export function isWrongCredentials(error: unknown) {
@@ -40,7 +40,9 @@ export function useLogin() {
 
       const user = await refetchSession(queryClient)
       if (!user) {
-        throw new Error("POST /api/login succeeded, but GET /api/user does not see the session")
+        throw new Error(
+          "POST /api/auth/login succeeded, but GET /api/user does not see the session",
+        )
       }
       return user
     },

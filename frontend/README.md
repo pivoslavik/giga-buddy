@@ -29,7 +29,7 @@ docker compose:
 | -------- | -------- | ---------------------------------------------- |
 | `intern` | `secret` | logs in as «Аня» and opens the main page       |
 | `down`   | any      | the backend fails with `500`                   |
-| other    | any      | `401`, the form says the credentials are wrong |
+| other    | any      | `400`, the form says the credentials are wrong |
 
 Sessions are kept in memory until the dev server restarts. There is no logout button yet, so open
 `/api/mock/logout` to become a guest again. The mock is never part of the production build.
@@ -69,9 +69,9 @@ The backend keeps the session in httpOnly cookies, so the frontend learns about 
 - `/welcome` — landing page for guests; users with a session are redirected to `/`.
 - every other page lives under the pathless `authenticated` route, which sends guests to `/welcome`.
 
-The login modal on the landing page sends `{ "username", "password" }` to `POST /api/login`. When
-the backend accepts them, the session is re-read and the user lands on `/`; `400`/`401` is shown as
-wrong credentials, anything else as "try again later".
+The login modal on the landing page sends `{ "username", "password" }` to `POST /api/auth/login`.
+When the backend accepts them, the session is re-read and the user lands on `/`; `400`/`401` is
+shown as wrong credentials, anything else as "try again later".
 
 After logging in or out, call `refetchSession(queryClient)` so the guards see the new state.
 Invalidating the query is not enough: the guards use `ensureQueryData`, which keeps returning the

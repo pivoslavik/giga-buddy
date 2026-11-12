@@ -5,7 +5,8 @@ import type { Plugin } from "vite"
 /*
  * Fake backend for `npm run dev:mock`: answers the endpoints the frontend uses, so the login flow
  * can be clicked through without docker compose. It follows the backend contract:
- * POST /api/login (#6, #36) and GET /api/user (#9). Sessions live in memory until a restart.
+ * POST /api/auth/login (#6, #36) and GET /api/user (#9). Sessions live in memory until a restart;
+ * access tokens never expire here, so POST /api/auth/refresh (#37) is not mocked yet.
  */
 
 interface MockUser {
@@ -94,7 +95,7 @@ export function createMockApi({ latencyMs = 400 } = {}): Handler {
     const path = new URL(req.url ?? "/", "http://mock").pathname
 
     switch (`${req.method} ${path}`) {
-      case "POST /api/login": {
+      case "POST /api/auth/login": {
         const body = await readJson(req)
         if (!isCredentials(body)) return send(res, 400, { error: "invalid request" })
 
@@ -105,13 +106,13 @@ export function createMockApi({ latencyMs = 400 } = {}): Handler {
           (candidate) =>
             candidate.user.username === username && candidate.password === body.password,
         )
-        if (!account) return send(res, 401, { error: "invalid credentials" })
+        // like #36: a wrong password is a 400, and a successful login has an empty body
+        if (!account) return send(res, 400, { error: "invalid login credentials" })
 
         const token = randomUUID()
         sessions.set(token, account)
         res.setHeader("Set-Cookie", `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax`)
-        const { id, email } = account.user
-        return send(res, 200, { user: { id, username, email } })
+        return send(res, 200)
       }
 
       case "GET /api/user": {
