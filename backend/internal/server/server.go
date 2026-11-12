@@ -29,7 +29,7 @@ func Run(databaseURL string, jwtSecret []byte) error {
 	router.GET("/health", health.HandleHealth) // is used for docker healthcheck only; isn't part of the API
 
 	publicAPI := router.Group("/api")
-	authHandler := auth.NewHandler(&database)
+	authHandler := auth.NewHandler(&database, jwtSecret)
 	authHandler.RegisterRoutes(publicAPI)
 
 	// PROTECTED ROUTES

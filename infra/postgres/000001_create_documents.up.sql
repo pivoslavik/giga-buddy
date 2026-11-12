@@ -11,7 +11,7 @@ CREATE TYPE document_category AS ENUM (
 CREATE TABLE documents (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     title TEXT NOT NULL CHECK (btrim(title) <> ''),
-    description TEXT NOT NULL CHECK (btrim(title) <> ''),
-    text TEXT NOT NULL CHECK (btrim(title) <> ''),
+    description TEXT NOT NULL CHECK (btrim(description) <> ''),
+    text TEXT NOT NULL CHECK (btrim(text) <> ''),
     category document_category NOT NULL
 );

@@ -31,7 +31,7 @@ func ParseAccessToken(tokenString string, secret []byte) (models.UserID, error) 
 
 	token, err := jwt.ParseWithClaims(
 		tokenString,
-		claims,
+		&claims,
 		func(token *jwt.Token) (any, error) {
 			return secret, nil
 		},

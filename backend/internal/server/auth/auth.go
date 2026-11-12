@@ -12,9 +12,10 @@ type Handler struct {
 	jwtSecret []byte
 }
 
-func NewHandler(database *db.Database) Handler {
+func NewHandler(database *db.Database, jwtSecret []byte) Handler {
 	return Handler{
-		database: database,
+		database:  database,
+		jwtSecret: jwtSecret,
 	}
 }
 

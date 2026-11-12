@@ -33,14 +33,7 @@ func (h *Handler) handleLogin(c *gin.Context) {
 		})
 	}
 
-	hashedRequestPassword, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
-	if err != nil {
-		c.Status(http.StatusInternalServerError)
-		log.Printf("handleLogin: %v\n", err)
-		return
-	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(userDB.PasswordHash), hashedRequestPassword); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(userDB.PasswordHash), []byte(request.Password)); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": apperrors.ErrInvalidLoginCredentials,
 		})
