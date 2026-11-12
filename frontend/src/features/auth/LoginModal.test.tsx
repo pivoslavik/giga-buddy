@@ -32,9 +32,10 @@ function workingBackend(): Handlers {
   let loggedIn = false
   return {
     "GET /api/user": () => (loggedIn ? json(intern) : status(401)),
-    "POST /api/login": () => {
+    // #36 answers with an empty body and puts the tokens into httpOnly cookies
+    "POST /api/auth/login": () => {
       loggedIn = true
-      return json({ user: { id: intern.id, username: intern.username, email: intern.email } })
+      return status(200)
     },
   }
 }
@@ -60,7 +61,7 @@ describe("LoginModal", () => {
     ).toBeInTheDocument()
     expect(router.state.location.pathname).toBe("/")
 
-    const loginCall = fetchMock.mock.calls.find(([url]) => url === "/api/login")
+    const loginCall = fetchMock.mock.calls.find(([url]) => url === "/api/auth/login")
     const init = loginCall?.[1]
     expect(init?.method).toBe("POST")
     expect(new Headers(init?.headers).get("Content-Type")).toBe("application/json")
@@ -72,10 +73,10 @@ describe("LoginModal", () => {
     const backend = workingBackend()
     const { fetchMock, user } = await openLogin({
       ...backend,
-      "POST /api/login": (init) =>
+      "POST /api/auth/login": (init) =>
         new Promise((resolve) => {
           respond = resolve
-        }).then(() => backend["POST /api/login"](init)),
+        }).then(() => backend["POST /api/auth/login"](init)),
     })
 
     await fillAndSubmit(user)
@@ -87,7 +88,7 @@ describe("LoginModal", () => {
 
     await user.click(submitButton())
     await user.type(passwordField(), "{Enter}")
-    expect(fetchMock.mock.calls.filter(([url]) => url === "/api/login")).toHaveLength(1)
+    expect(fetchMock.mock.calls.filter(([url]) => url === "/api/auth/login")).toHaveLength(1)
 
     respond(status(200))
 
@@ -98,7 +99,7 @@ describe("LoginModal", () => {
 
   it.each([401, 400])("reports wrong credentials when the backend answers %i", async (code) => {
     const warn = vi.spyOn(console, "warn")
-    const { dialog, router, user } = await openLogin({ "POST /api/login": () => status(code) })
+    const { dialog, router, user } = await openLogin({ "POST /api/auth/login": () => status(code) })
 
     await fillAndSubmit(user)
 
@@ -113,7 +114,7 @@ describe("LoginModal", () => {
   })
 
   it("hides the error once the values are edited", async () => {
-    const { user } = await openLogin({ "POST /api/login": () => status(401) })
+    const { user } = await openLogin({ "POST /api/auth/login": () => status(401) })
     await fillAndSubmit(user)
     expect(await screen.findByRole("alert")).toBeInTheDocument()
 
@@ -127,7 +128,7 @@ describe("LoginModal", () => {
   it("asks to try again later when the backend is unavailable", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     const { router, user } = await openLogin({
-      "POST /api/login": () => Promise.reject(new TypeError("Failed to fetch")),
+      "POST /api/auth/login": () => Promise.reject(new TypeError("Failed to fetch")),
     })
 
     await fillAndSubmit(user)
@@ -142,7 +143,7 @@ describe("LoginModal", () => {
 
   it("stays on the landing page when the session did not start after logging in", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
-    const { router, user } = await openLogin({ "POST /api/login": () => json({}) })
+    const { router, user } = await openLogin({ "POST /api/auth/login": () => json({}) })
 
     await fillAndSubmit(user)
 
@@ -159,7 +160,7 @@ describe("LoginModal", () => {
     await user.click(submitButton())
 
     expect(passwordField()).toBeRequired()
-    expect(fetchMock).not.toHaveBeenCalledWith("/api/login", expect.anything())
+    expect(fetchMock).not.toHaveBeenCalledWith("/api/auth/login", expect.anything())
   })
 
   it("shows and hides the password", async () => {
@@ -180,7 +181,7 @@ describe("LoginModal", () => {
   })
 
   it("hides the password again on submit", async () => {
-    const { user } = await openLogin({ "POST /api/login": () => status(401) })
+    const { user } = await openLogin({ "POST /api/auth/login": () => status(401) })
     await user.click(screen.getByRole("button", { name: "Показать пароль" }))
 
     await fillAndSubmit(user)

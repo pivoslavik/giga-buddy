@@ -4,7 +4,7 @@ import { EyeIcon, EyeOffIcon, LockIcon, UserIcon } from "../../shared/ui/icons/i
 import { isWrongCredentials, useLogin } from "./login"
 import styles from "./LoginForm.module.css"
 
-/** Username and password form: sends them to /api/login and opens the main page on success. */
+/** Username and password form: logs in with them and opens the main page on success. */
 export function LoginForm() {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
