@@ -14,6 +14,29 @@ const dateFormat = new Intl.DateTimeFormat("ru-RU", {
   year: "numeric",
 })
 
+const arrowEaseOut = "cubic-bezier(0.16, 1, 0.3, 1)"
+const arrowRest = { transform: "none", opacity: 1 }
+const arrowMotions = {
+  hover: {
+    duration: 620,
+    frames: [
+      { offset: 0.22, transform: "translate(-2px, 5px) rotate(-9deg) scale(0.93)" },
+      { offset: 0.72, transform: "translate(3px, -6px) rotate(8deg) scale(1.13)" },
+      { transform: "translate(2px, -4px) rotate(5deg) scale(1.08)" },
+    ],
+  },
+  rest: { duration: 540, frames: [arrowRest] },
+  launch: {
+    duration: 720,
+    frames: [
+      { offset: 0.24, transform: "translate(3px, -11px) rotate(8deg) scale(1.16)", opacity: 1 },
+      { offset: 0.5, transform: "translate(7px, -19px) rotate(11deg) scale(1.12)", opacity: 0 },
+      { offset: 0.51, transform: "translate(-2px, 8px) rotate(-5deg) scale(0.94)", opacity: 0 },
+      arrowRest,
+    ],
+  },
+} satisfies Record<string, { duration: number; frames: Keyframe[] }>
+
 interface ChatConversationProps {
   userId: number
   displayName: string
@@ -33,6 +56,8 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
   const [sendError, setSendError] = useState(false)
   const request = useRef<AbortController | null>(null)
   const timeline = useRef<HTMLDivElement>(null)
+  const sendArrow = useRef<HTMLSpanElement>(null)
+  const arrowAnimation = useRef<Animation | null>(null)
   const followTail = useRef(true)
   const smoothTop = useRef<number | null>(null)
   const lastLayout = useRef<{ target: number; outgoing?: Message; replyId?: string }>(undefined)
@@ -81,11 +106,39 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
     }
   }, [history.data, outgoing, partial, newReplyId])
 
+  function moveArrow(motion: keyof typeof arrowMotions) {
+    const element = sendArrow.current
+    const previous = arrowAnimation.current
+    if (
+      !element?.animate ||
+      !window.matchMedia?.("(prefers-reduced-motion: no-preference)").matches
+    )
+      return
+    if (motion !== "launch" && previous?.id === "launch" && previous.playState === "running") return
+    if (motion === "rest" && previous?.id !== "hover") return
+
+    // Start each gesture at the arrow's current position, including interrupted hovers.
+    const { transform, opacity } = getComputedStyle(element)
+    previous?.cancel()
+    const { duration, frames } = arrowMotions[motion]
+    const startingEase = motion === "hover" ? "cubic-bezier(0.4, 0, 0.2, 1)" : arrowEaseOut
+    const animation = element.animate(
+      [
+        { transform, opacity, easing: startingEase },
+        ...frames.map((frame) => ({ easing: arrowEaseOut, ...frame })),
+      ],
+      { duration, fill: motion === "hover" ? "forwards" : "none" },
+    )
+    animation.id = motion
+    arrowAnimation.current = animation
+  }
+
   async function send(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
     const message = draft.trim()
     if (!message || request.current || !history.isSuccess) return
 
+    moveArrow("launch")
     const controller = new AbortController()
     request.current = controller
     setDraft("")
@@ -217,7 +270,7 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
             })}
             {sending && !partial && (
               <p className={styles.pending} role="status">
-                AI Buddy готовит ответ…
+                <span className={styles.waitingLabel}>AI Buddy готовит ответ…</span>
               </p>
             )}
           </div>
@@ -240,9 +293,20 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
               type="submit"
               aria-label="Отправить сообщение"
               disabled={sending || !history.isSuccess}
-              data-sending={sending || undefined}
+              onPointerEnter={(event) => {
+                if (
+                  !event.currentTarget.disabled &&
+                  event.pointerType !== "touch" &&
+                  window.matchMedia?.("(hover: hover) and (pointer: fine)").matches
+                ) {
+                  moveArrow("hover")
+                }
+              }}
+              onPointerLeave={() => moveArrow("rest")}
             >
-              <ArrowRightIcon />
+              <span ref={sendArrow} className={styles.sendArrow}>
+                <ArrowRightIcon />
+              </span>
             </button>
           </form>
         </section>

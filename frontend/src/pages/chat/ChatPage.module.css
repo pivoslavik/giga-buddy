@@ -1,5 +1,6 @@
 .page {
   --chat-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --chat-cinematic-out: cubic-bezier(0.16, 1, 0.3, 1);
 
   min-height: 100dvh;
   padding-inline: max(16px, calc((100% - 1130px) / 2));
@@ -330,6 +331,7 @@
   flex: none;
   place-items: center;
   align-self: center;
+  overflow: clip;
   padding: 0;
   border: 0;
   border-radius: 14px;
@@ -339,6 +341,10 @@
 .composer button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+.sendArrow {
+  display: block;
 }
 
 .composer button svg {
@@ -375,50 +381,92 @@
 .intro p,
 .panel,
 .panelHeader,
+.timeline,
 .composer,
 .notice {
-  animation: chat-enter 210ms var(--chat-ease-out) var(--enter-delay, 0ms) backwards;
+  animation: chat-enter var(--enter-duration) var(--enter-ease, var(--chat-cinematic-out))
+    var(--enter-delay, 0ms) backwards;
+}
+
+.intro h1 {
+  --enter-duration: 840ms;
+  --enter-shift: 26px;
+  --enter-opacity: 0.28;
 }
 
 .intro p {
-  --enter-delay: 20ms;
+  --enter-duration: 760ms;
+  --enter-delay: 170ms;
+  --enter-shift: 14px;
+  --enter-opacity: 0.44;
 }
 
 .panel {
-  --enter-delay: 35ms;
+  --enter-duration: 1100ms;
+  --enter-delay: 200ms;
+  --enter-shift: 16px;
+  --enter-opacity: 0.74;
+  --enter-ease: cubic-bezier(0.22, 0.75, 0.24, 1);
+}
+
+.panelHeader,
+.timeline,
+.composer {
+  --enter-ease: var(--chat-cinematic-out);
 }
 
 .panelHeader {
-  --enter-delay: 50ms;
+  --enter-duration: 720ms;
+  --enter-delay: 360ms;
+  --enter-shift: 10px;
+  --enter-opacity: 0.6;
 }
 
-.composer,
+.timeline {
+  --enter-duration: 760ms;
+  --enter-delay: 540ms;
+  --enter-shift: 7px;
+  --enter-opacity: 0.76;
+}
+
+.composer {
+  --enter-duration: 730ms;
+  --enter-delay: 730ms;
+  --enter-shift: 4px;
+  --enter-opacity: 0.92;
+}
+
 .notice {
-  --enter-delay: 65ms;
+  --enter-duration: 600ms;
+  --enter-delay: 900ms;
+  --enter-shift: 5px;
+  --enter-opacity: 0.55;
 }
 
 .message[data-entering] {
-  animation: chat-message-enter 200ms var(--chat-ease-out);
+  animation: chat-message-enter 620ms var(--chat-cinematic-out);
 }
 
 .user[data-entering] {
-  --message-shift: 3px;
+  --message-shift: 12px;
+  --message-opacity: 0.82;
 
-  animation-duration: 160ms;
+  animation-duration: 500ms;
+  animation-timing-function: var(--chat-ease-out);
 }
 
-.pending,
+.waitingLabel {
+  display: inline-block;
+  animation: chat-waiting-label 1600ms ease-in-out infinite;
+}
+
 .message[data-streaming] .messageAvatar svg {
-  animation: chat-waiting 1.15s ease-in-out infinite;
+  animation: chat-waiting-avatar 1600ms ease-in-out infinite;
 }
 
 .copyFeedback {
   display: inline-block;
-  animation: chat-feedback 150ms var(--chat-ease-out);
-}
-
-.composer button[data-sending] svg {
-  animation: chat-send 180ms var(--chat-ease-out);
+  animation: chat-feedback 300ms var(--chat-cinematic-out);
 }
 
 .referenceLink,
@@ -426,13 +474,20 @@
 .state button,
 .composer button {
   transition:
-    background-color 130ms var(--chat-ease-out),
-    translate 130ms var(--chat-ease-out),
-    opacity 130ms var(--chat-ease-out);
+    background-color 300ms var(--chat-ease-out),
+    translate 300ms var(--chat-ease-out),
+    opacity 300ms var(--chat-ease-out);
 }
 
 .composer input {
-  transition: border-color 130ms var(--chat-ease-out);
+  transition: border-color 300ms var(--chat-ease-out);
+}
+
+.composer button:active:not(:disabled),
+.state button:active:not(:disabled),
+.referenceLink:active,
+.copy:active {
+  transition-duration: 270ms;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -444,35 +499,44 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .sendArrow {
+    transform: none !important;
+    opacity: 1 !important;
+  }
+}
+
 @keyframes chat-enter {
   from {
-    opacity: 0.82;
-    translate: 0 4px;
+    opacity: var(--enter-opacity);
+    translate: 0 var(--enter-shift);
   }
 }
 
 @keyframes chat-message-enter {
   from {
-    opacity: 0.64;
-    translate: 0 var(--message-shift, 4px);
+    opacity: var(--message-opacity, 0.74);
+    translate: 0 var(--message-shift, 18px);
   }
 }
 
-@keyframes chat-waiting {
+@keyframes chat-waiting-label {
+  40% {
+    opacity: 0.82;
+    translate: 0 -4px;
+  }
+}
+
+@keyframes chat-waiting-avatar {
   50% {
     opacity: 0.82;
+    scale: 1.09;
   }
 }
 
 @keyframes chat-feedback {
   from {
     opacity: 0.55;
-  }
-}
-
-@keyframes chat-send {
-  45% {
-    translate: 0 -3px;
   }
 }
 
