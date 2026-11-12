@@ -9,7 +9,7 @@ import (
 
 // database is a collection of quieries to different tables
 type Database struct {
-	Users           users.Quieries
+	Users           users.Queries
 	RefreshSessions refreshsessions.Queries
 }
 
