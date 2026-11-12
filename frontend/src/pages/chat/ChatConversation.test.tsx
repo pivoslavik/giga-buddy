@@ -42,6 +42,7 @@ describe("chat", () => {
     expect(screen.getByText("Загружаем историю…")).toBeInTheDocument()
     initial.resolve(new Response(null, { status: 503 }))
     expect(await screen.findByRole("alert")).toHaveTextContent("Не удалось загрузить историю.")
+    expect(screen.queryByRole("article")).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole("button", { name: "Повторить" }))
 
     expect(await screen.findByText("Подготовка", { selector: "strong" })).toBeInTheDocument()

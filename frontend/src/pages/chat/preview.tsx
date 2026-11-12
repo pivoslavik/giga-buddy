@@ -11,7 +11,7 @@ function todayAt(minute: number) {
   return date.toISOString()
 }
 
-let messages: ChatMessage[] = [
+const demoMessages: ChatMessage[] = [
   {
     id: "preview-1",
     role: "assistant",
@@ -57,6 +57,8 @@ let messages: ChatMessage[] = [
     created_at: todayAt(27),
   },
 ]
+
+let messages = new URLSearchParams(window.location.search).get("demo") === "1" ? demoMessages : []
 
 const transport: ChatTransport = {
   async load(signal) {

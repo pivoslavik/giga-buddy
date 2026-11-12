@@ -68,6 +68,8 @@ describe("session-based routing", () => {
 
     expect(await screen.findByRole("heading", { name: "Чат с AI Buddy" })).toBeInTheDocument()
     expect(await screen.findByText("Напиши первое сообщение.")).toBeInTheDocument()
+    expect(screen.queryByRole("article")).not.toBeInTheDocument()
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Чат" })).toHaveAttribute("aria-current", "page")
     expect(router.state.location.pathname).toBe("/chat")
     expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/api/chat"), expect.any(Object))
