@@ -8,7 +8,7 @@ export interface Credentials {
   password: string
 }
 
-/** POST /api/auth/login (#6, #36): on success the backend puts the tokens into httpOnly cookies. */
+/** POST /api/auth/login (#6, #36): answers 204 and puts the access and refresh tokens into cookies. */
 export async function login(credentials: Credentials): Promise<void> {
   await apiFetch<unknown>("/api/auth/login", {
     method: "POST",

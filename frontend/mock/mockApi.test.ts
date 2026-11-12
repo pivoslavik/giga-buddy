@@ -37,8 +37,7 @@ describe("mock API", () => {
 
     const response = await api("/api/auth/login", login({ username: "intern", password: "secret" }))
 
-    expect(response.status).toBe(200)
-    expect(await response.text()).toBe("")
+    expect(response.status).toBe(204)
     expect(response.headers.getSetCookie()[0]).toMatch(/HttpOnly/)
 
     const user = await api("/api/user", { headers: { Cookie: sessionCookie(response) } })

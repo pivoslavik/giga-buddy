@@ -32,10 +32,10 @@ function workingBackend(): Handlers {
   let loggedIn = false
   return {
     "GET /api/user": () => (loggedIn ? json(intern) : status(401)),
-    // #36 answers with an empty body and puts the tokens into httpOnly cookies
+    // the contract (#6, #36): 204 No Content, the tokens go into httpOnly cookies
     "POST /api/auth/login": () => {
       loggedIn = true
-      return status(200)
+      return status(204)
     },
   }
 }

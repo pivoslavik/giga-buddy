@@ -103,13 +103,13 @@ export function createMockApi({ latencyMs = 400 } = {}): Handler {
           (candidate) =>
             candidate.user.username === username && candidate.password === body.password,
         )
-        // like #36: a wrong password is a 400, and a successful login has an empty body
+        // as in the contract (#6, #36): a wrong password is a 400, a successful login is a 204
         if (!account) return send(res, 400, { error: "invalid login credentials" })
 
         const token = randomUUID()
         sessions.set(token, account)
         res.setHeader("Set-Cookie", `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax`)
-        return send(res, 200)
+        return send(res, 204)
       }
 
       case "GET /api/user": {
