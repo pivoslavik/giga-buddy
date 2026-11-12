@@ -31,8 +31,8 @@ docker compose:
 | `down`   | any      | the backend fails with `500`                   |
 | other    | any      | `400`, the form says the credentials are wrong |
 
-Sessions are kept in memory until the dev server restarts. There is no logout button yet, so open
-`/api/mock/logout` to become a guest again. The mock is never part of the production build.
+Sessions are kept in memory until the dev server restarts; log out from the avatar menu in the
+header. The mock is never part of the production build.
 
 ## Scripts
 
@@ -53,11 +53,12 @@ The HTML coverage report is written to `coverage/index.html`.
 ```
 src/
   router.ts        routes and session guards
-  pages/           route components (landing, home, ...)
+  pages/           route components (landing, home, ...) and the layout of the app pages
+  widgets/         blocks shared by pages: the header
   features/        user scenarios (auth, ...)
   entities/        domain data and its queries (session, ...)
   shared/api/      fetch wrapper for the backend
-  shared/ui/       reusable components: Button, Modal, Logo, icons
+  shared/ui/       reusable components: Button, Modal, Logo, Avatar, PageTitle, icons
   index.css        design tokens and global styles
 ```
 
@@ -67,11 +68,16 @@ The backend keeps the session in httpOnly cookies, so the frontend learns about 
 `GET /api/user`: a user means a session, `401`/`403` (or an unavailable backend) means a guest.
 
 - `/welcome` — landing page for guests; users with a session are redirected to `/`.
-- every other page lives under the pathless `authenticated` route, which sends guests to `/welcome`.
+- every other page lives under the pathless `authenticated` route, which sends guests to `/welcome`
+  and renders the page under the app header (`/`, `/profile`, `/chat`).
 
 The login modal on the landing page sends `{ "username", "password" }` to `POST /api/auth/login`.
 When the backend accepts them, the session is re-read and the user lands on `/`; `400`/`401` is
 shown as wrong credentials, anything else as "try again later".
+
+"Выйти из аккаунта" in the avatar menu of the header sends `POST /api/auth/logout`: only the
+backend can expire the httpOnly cookies. The session is re-read, and once it is gone the user lands
+on `/welcome`; if it is still there, the menu says logging out failed.
 
 After logging in or out, call `refetchSession(queryClient)` so the guards see the new state.
 Invalidating the query is not enough: the guards use `ensureQueryData`, which keeps returning the

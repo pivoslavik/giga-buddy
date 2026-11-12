@@ -5,8 +5,9 @@ import type { Plugin } from "vite"
 /*
  * Fake backend for `npm run dev:mock`: answers the endpoints the frontend uses, so the login flow
  * can be clicked through without docker compose. It follows the backend contract:
- * POST /api/auth/login (#6, #36) and GET /api/user (#9). Sessions live in memory until a restart;
- * access tokens never expire here, so POST /api/auth/refresh (#37) is not mocked yet.
+ * POST /api/auth/login (#6, #36), GET /api/user (#9) and POST /api/auth/logout.
+ * Sessions live in memory until a restart; access tokens never expire here, so
+ * POST /api/auth/refresh (#37) is not mocked yet.
  */
 
 interface MockUser {
@@ -84,10 +85,6 @@ function isCredentials(body: unknown): body is { username: string; password: str
 export function createMockApi({ latencyMs = 400 } = {}): Handler {
   const sessions = new Map<string, MockAccount>()
   const sessionToken = (req: IncomingMessage) => readCookie(req, SESSION_COOKIE) ?? ""
-  const endSession = (req: IncomingMessage, res: ServerResponse) => {
-    sessions.delete(sessionToken(req))
-    res.setHeader("Set-Cookie", EXPIRED_SESSION_COOKIE)
-  }
 
   return async (req, res) => {
     // a little latency, so loading states are visible
@@ -121,14 +118,9 @@ export function createMockApi({ latencyMs = 400 } = {}): Handler {
       }
 
       case "POST /api/auth/logout":
-        endSession(req, res)
+        sessions.delete(sessionToken(req))
+        res.setHeader("Set-Cookie", EXPIRED_SESSION_COOKIE)
         return send(res, 204)
-
-      // there is no logout button yet: open this in the browser to become a guest again
-      case "GET /api/mock/logout":
-        endSession(req, res)
-        res.setHeader("Location", "/welcome")
-        return send(res, 302)
 
       default:
         return send(res, 404, { error: `${req.method} ${path} is not in the mock API` })
@@ -152,7 +144,7 @@ export function mockApiPlugin(): Plugin {
       server.httpServer?.once("listening", () => {
         server.config.logger.info(
           `\n  Mock API: log in as ${user.username} / ${password}, ` +
-            `"${FAILING_USERNAME}" makes the backend fail, /api/mock/logout logs out\n`,
+            `"${FAILING_USERNAME}" makes the backend fail\n`,
         )
       })
     },

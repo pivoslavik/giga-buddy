@@ -1,14 +1,11 @@
 /*
- * The landing is a one-screen composition. On big monitors at 100% OS scaling it would sit
- * small in the middle, so the whole page (the login modal included) is zoomed proportionally.
- * Viewport units are zoomed too, hence the division in the heights.
+ * The landing is a one-screen composition: the logo and the content fill the window height.
+ * On big monitors the whole app is zoomed (see index.css), so the height is divided by the zoom.
  */
 .page {
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --zoom: 1;
-  --full-height: calc(100vh / var(--zoom));
+  --full-height: calc(100vh / var(--ui-zoom));
 
-  zoom: var(--zoom);
   min-height: var(--full-height);
   overflow-x: clip;
   background:
@@ -39,18 +36,6 @@
   display: flex;
   flex-direction: column;
   gap: 48px;
-}
-
-@media (min-width: 1800px) and (min-height: 1000px) {
-  .page {
-    --zoom: 1.2;
-  }
-}
-
-@media (min-width: 2300px) and (min-height: 1200px) {
-  .page {
-    --zoom: 1.4;
-  }
 }
 
 .hero {
