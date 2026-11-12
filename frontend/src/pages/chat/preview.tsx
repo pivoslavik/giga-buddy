@@ -4,6 +4,34 @@ import "@fontsource-variable/manrope"
 import "../../index.css"
 import { ChatConversation } from "./ChatConversation"
 import type { ChatMessage, ChatTransport } from "./chatApi"
+import demoAnswer from "./demoAnswer.md?raw"
+
+export const demoQuestion =
+  "Как устроен проект AI Buddy, как запустить его локально и какие технологии используются?"
+const fragmentSizes = [35, 82, 51, 112, 46, 94, 68, 126, 57, 102]
+
+function normalizeQuestion(question: string) {
+  return question
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/[?!.]+$/, "")
+    .toLocaleLowerCase("ru-RU")
+}
+
+export function previewReply(message: string, demoMode: boolean) {
+  if (!demoMode || normalizeQuestion(message) !== normalizeQuestion(demoQuestion)) {
+    return ["Это ", "тестовый ответ ", "в локальном ", "предпросмотре."]
+  }
+
+  const characters = Array.from(demoAnswer)
+  const fragments: string[] = []
+  for (let offset = 0; offset < characters.length;) {
+    const size = fragmentSizes[fragments.length % fragmentSizes.length]
+    fragments.push(characters.slice(offset, offset + size).join(""))
+    offset += size
+  }
+  return fragments
+}
 
 function todayAt(minute: number) {
   const date = new Date()
@@ -58,7 +86,8 @@ const demoMessages: ChatMessage[] = [
   },
 ]
 
-let messages = new URLSearchParams(window.location.search).get("demo") === "1" ? demoMessages : []
+const demoMode = new URLSearchParams(window.location.search).get("demo") === "1"
+let messages = demoMode ? demoMessages : []
 
 const transport: ChatTransport = {
   async load(signal) {
@@ -66,7 +95,7 @@ const transport: ChatTransport = {
     return messages
   },
   async send(message, signal, onDelta) {
-    const reply = ["Это ", "тестовый ответ ", "в локальном ", "предпросмотре."]
+    const reply = previewReply(message, demoMode)
     for (const part of reply) {
       await new Promise((resolve) => setTimeout(resolve, 160))
       signal.throwIfAborted()
@@ -87,8 +116,9 @@ const transport: ChatTransport = {
   },
 }
 
-if (import.meta.env.DEV) {
-  createRoot(document.getElementById("root")!).render(
+const root = document.getElementById("root")
+if (import.meta.env.DEV && root) {
+  createRoot(root).render(
     <QueryClientProvider client={new QueryClient()}>
       <ChatConversation userId={0} displayName="Г" transport={transport} />
     </QueryClientProvider>,
