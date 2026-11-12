@@ -2,22 +2,27 @@ import react, { reactCompilerPreset } from "@vitejs/plugin-react"
 import babel from "@rolldown/plugin-babel"
 import { loadEnv } from "vite"
 import { defineConfig } from "vitest/config"
+import { mockApiPlugin } from "./mock/mockApi.ts"
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "")
+  // `npm run dev:mock` answers /api from mock/mockApi.ts instead of a real backend
+  const useMockApi = mode === "mock"
 
   return {
-    plugins: [react(), babel({ presets: [reactCompilerPreset()] })],
+    plugins: [react(), babel({ presets: [reactCompilerPreset()] }), useMockApi && mockApiPlugin()],
     server: {
-      proxy: {
-        // `npm run dev` forwards API calls to nginx from docker compose by default,
-        // set API_PROXY_TARGET to point at a locally started backend instead
-        "/api": {
-          target: env.API_PROXY_TARGET || "http://localhost",
-          changeOrigin: true,
-        },
-      },
+      proxy: useMockApi
+        ? undefined
+        : {
+            // `npm run dev` forwards API calls to nginx from docker compose by default,
+            // set API_PROXY_TARGET to point at a locally started backend instead
+            "/api": {
+              target: env.API_PROXY_TARGET || "http://localhost",
+              changeOrigin: true,
+            },
+          },
     },
     test: {
       environment: "jsdom",

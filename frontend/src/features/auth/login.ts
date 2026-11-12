@@ -1,0 +1,56 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useNavigate } from "@tanstack/react-router"
+import { refetchSession } from "../../entities/session/session"
+import { ApiError, apiFetch } from "../../shared/api/client"
+
+export interface Credentials {
+  username: string
+  password: string
+}
+
+/** POST /api/auth/login (#6, #36): answers 204 and puts the access and refresh tokens into cookies. */
+export async function login(credentials: Credentials): Promise<void> {
+  await apiFetch<unknown>("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(credentials),
+  })
+}
+
+/** #36 answers 400 to a wrong username or password and to a malformed body; 401 means the same. */
+const WRONG_CREDENTIALS_STATUSES = new Set([400, 401])
+
+export function isWrongCredentials(error: unknown) {
+  return error instanceof ApiError && WRONG_CREDENTIALS_STATUSES.has(error.status)
+}
+
+/**
+ * Logs in and opens the main page.
+ *
+ * The session is re-read before navigating: the guard of `/` trusts the session query, and with
+ * the guest still cached there it would send the user straight back to the landing page.
+ */
+export function useLogin() {
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
+
+  return useMutation({
+    mutationFn: async (credentials: Credentials) => {
+      await login(credentials)
+
+      const user = await refetchSession(queryClient)
+      if (!user) {
+        throw new Error(
+          "POST /api/auth/login succeeded, but GET /api/user does not see the session",
+        )
+      }
+      return user
+    },
+    onSuccess: () => navigate({ to: "/" }),
+    onError: (error) => {
+      if (!isWrongCredentials(error)) {
+        console.warn("Could not log in", error)
+      }
+    },
+  })
+}

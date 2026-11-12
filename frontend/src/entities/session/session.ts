@@ -1,4 +1,4 @@
-import { queryOptions } from "@tanstack/react-query"
+import { queryOptions, type QueryClient } from "@tanstack/react-query"
 import { ApiError, apiFetch } from "../../shared/api/client"
 
 /** Response of GET /api/user: a row of the users table without the password (issue #9). */
@@ -32,7 +32,7 @@ export async function fetchSessionUser(): Promise<User | null> {
 
 /**
  * Shared query for the current session. Route guards read it through the query cache,
- * so after logging in or out invalidate `sessionQueryOptions.queryKey`.
+ * so after logging in or out call `refetchSession`.
  */
 export const sessionQueryOptions = queryOptions({
   queryKey: ["session"],
@@ -40,3 +40,13 @@ export const sessionQueryOptions = queryOptions({
   staleTime: 5 * 60 * 1000,
   retry: false,
 })
+
+/**
+ * Re-reads the session right away and resolves to the fresh user (or `null` for a guest).
+ *
+ * Invalidating the query is not enough: nothing subscribes to it, so it is not refetched,
+ * and the guards' `ensureQueryData` keeps returning the cached value even when it is stale.
+ */
+export function refetchSession(queryClient: QueryClient) {
+  return queryClient.fetchQuery({ ...sessionQueryOptions, staleTime: 0 })
+}
