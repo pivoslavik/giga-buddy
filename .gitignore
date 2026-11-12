@@ -37,7 +37,6 @@ dist-ssr/
 
 # ML data, models, and caches
 data/
-models/
 checkpoints/
 .cache/
 .ipynb_checkpoints/
