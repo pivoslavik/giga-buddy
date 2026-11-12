@@ -19,11 +19,27 @@ API_PROXY_TARGET=http://localhost:8080
 See [.env.example](.env.example) for all variables. `VITE_API_URL` is only needed when the static
 frontend is hosted on another origin than the API.
 
+### Without a backend
+
+`npm run dev:mock` starts the same dev server, but `/api` is answered by a fake backend from
+[mock/mockApi.ts](mock/mockApi.ts) instead of the proxy, so the whole login flow works without
+docker compose:
+
+| Login    | Password | Result                                         |
+| -------- | -------- | ---------------------------------------------- |
+| `intern` | `secret` | logs in as «Аня» and opens the main page       |
+| `down`   | any      | the backend fails with `500`                   |
+| other    | any      | `401`, the form says the credentials are wrong |
+
+Sessions are kept in memory until the dev server restarts. There is no logout button yet, so open
+`/api/mock/logout` to become a guest again. The mock is never part of the production build.
+
 ## Scripts
 
 | Command            | What it does                                  |
 | ------------------ | --------------------------------------------- |
 | `npm run dev`      | dev server with HMR                           |
+| `npm run dev:mock` | dev server with the mock API instead of proxy |
 | `npm run build`    | type-check and production build into `dist/`  |
 | `npm run lint`     | ESLint                                        |
 | `npm run format`   | Prettier                                      |
