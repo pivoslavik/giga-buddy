@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react"
 import Markdown, { type Components } from "react-markdown"
+import remarkGfm from "remark-gfm"
 import { LogoMark } from "../../shared/ui/Logo/Logo"
 import type { ChatMessage as Message } from "./chatApi"
 import styles from "./ChatPage.module.css"
@@ -10,8 +11,25 @@ import {
 } from "./streamingMarkdown"
 
 const timeFormat = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" })
+const remarkPlugins = [remarkGfm]
 
 const markdownComponents: Components = {
+  table({ children }) {
+    return (
+      <div
+        className={styles.tableScroll}
+        role="region"
+        aria-label="Таблица в сообщении"
+        tabIndex={0}
+      >
+        <table>{children}</table>
+      </div>
+    )
+  },
+}
+
+const assistantMarkdownComponents: Components = {
+  ...markdownComponents,
   a({ children, href }) {
     if (!href) return <span>{children}</span>
 
@@ -20,7 +38,7 @@ const markdownComponents: Components = {
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" aria-hidden="true">
           <path d="M5 2h7l4 4v11.5H5zM12 2v4h4M7.5 10H13m-5.5 3H13" />
         </svg>
-        {children}
+        <span className={styles.referenceLabel}>{children}</span>
         <span aria-hidden="true">↗</span>
       </a>
     )
@@ -109,7 +127,8 @@ export function ChatMessage({
         <div ref={bubble} className={styles.bubble}>
           <Markdown
             skipHtml
-            components={assistant ? markdownComponents : undefined}
+            components={assistant ? assistantMarkdownComponents : markdownComponents}
+            remarkPlugins={remarkPlugins}
             rehypePlugins={
               streamFragments
                 ? [markStreamingMarkdown(message.content, streamFragments, styles.streamFragment)]

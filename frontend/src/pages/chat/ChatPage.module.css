@@ -211,9 +211,12 @@
   overflow-wrap: anywhere;
   border-radius: 14px;
   background: #eeedfd;
+  line-height: 1.5;
 }
 
 .assistant .bubble {
+  max-inline-size: min(100%, 553px);
+  padding: 12px 16px;
   border-top-left-radius: 5px;
 }
 
@@ -224,41 +227,147 @@
   background: #cefadc;
 }
 
-.bubble:has(pre) {
-  width: 553px;
-  padding-block: 5px 7px;
+.bubble :where(h1, h2, h3, h4, h5, h6, p, ol, ul, pre, blockquote, hr) {
+  margin: 0;
 }
 
-.bubble ol,
-.bubble ul {
-  margin: 0;
+.bubble > * + *,
+.bubble :is(li, blockquote) > * + * {
+  margin-block-start: 10px;
+}
+
+.bubble > * + :is(h1, h2, h3, h4, h5, h6) {
+  margin-block-start: 16px;
+}
+
+.bubble :is(h1, h2, h3, h4, h5, h6) {
+  font-weight: 780;
+  line-height: 1.25;
+}
+
+.bubble h1 {
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+
+.bubble h2 {
+  font-size: 19px;
+  letter-spacing: -0.015em;
+}
+
+.bubble h3 {
+  font-size: 17px;
+}
+
+.bubble h4 {
+  font-size: 15px;
+}
+
+.bubble h5 {
+  font-size: 14px;
+}
+
+.bubble h6 {
+  color: #55516e;
+  font-size: 13px;
+}
+
+.bubble :is(ol, ul) {
   padding-inline-start: 19px;
 }
 
-.bubble :is(ol, ul) :is(ol, ul) {
-  padding-inline-start: 20px;
+.bubble li + li,
+.bubble li > :is(ol, ul) {
+  margin-block-start: 4px;
+}
+
+.bubble :global(.task-list-item) {
+  list-style: none;
+}
+
+.bubble :global(.task-list-item) input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  margin: 0 6px 0 -18px;
+  accent-color: #6848ff;
+  vertical-align: -2px;
+}
+
+.bubble code {
+  font-family: Consolas, "Courier New", monospace;
+}
+
+.bubble :not(pre) > code {
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  background: #e3dcfa;
+  color: #3f3265;
+  font-size: 0.92em;
+  box-decoration-break: clone;
+  white-space: break-spaces;
 }
 
 .bubble pre {
-  margin: 5px 2px 3px 1px;
-  padding: 4px 17px;
+  max-inline-size: 100%;
+  padding: 10px 12px;
   overflow: auto;
+  overflow-wrap: normal;
   border-radius: 7px;
   background: #252e33;
   color: #f3f5f7;
   font-size: 13px;
   font-weight: 400;
   line-height: 18px;
+  white-space: pre;
 }
 
 .bubble pre code {
-  font-family: Consolas, "Courier New", monospace;
+  font-size: inherit;
 }
 
 .bubble blockquote {
-  margin: 4px 0;
-  padding-inline-start: 8px;
+  padding: 7px 11px;
   border-inline-start: 2px solid #a99af4;
+  background: #e7e2f8;
+  color: #494461;
+}
+
+.bubble hr {
+  height: 0;
+  border: 0;
+  border-block-start: 1px solid #d2c9ef;
+}
+
+.tableScroll {
+  max-inline-size: 100%;
+  overflow-x: auto;
+}
+
+.tableScroll table {
+  inline-size: max-content;
+  min-inline-size: 100%;
+  border-collapse: collapse;
+}
+
+.tableScroll :is(th, td) {
+  max-inline-size: 26ch;
+  padding: 6px 9px;
+  border: 1px solid #d7d0ed;
+  vertical-align: top;
+}
+
+.tableScroll th {
+  background: #e3dcfa;
+  font-weight: 760;
+  text-align: start;
+}
+
+.tableScroll tbody tr:nth-child(even) {
+  background: #f6f3ff;
+}
+
+.bubble a:not(.referenceLink) {
+  color: #6040d8;
 }
 
 .referenceLink {
@@ -267,7 +376,6 @@
   min-height: 28px;
   align-items: center;
   gap: 6px;
-  margin: 5px 2px 0;
   padding: 1px 11px;
   border: 1px solid #b4a2ff;
   border-radius: var(--radius-pill);
@@ -276,6 +384,15 @@
   font-weight: 700;
   text-decoration: none;
   vertical-align: middle;
+}
+
+.referenceLabel {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.referenceLink > :last-child {
+  flex: none;
 }
 
 .referenceLink svg {
@@ -610,6 +727,10 @@
   .bubble,
   .user .bubble {
     padding-inline: 10px;
+  }
+
+  .assistant .bubble {
+    padding: 10px 12px;
   }
 
   .composer {

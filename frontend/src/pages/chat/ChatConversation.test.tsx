@@ -211,6 +211,64 @@ describe("chat", () => {
     await waitFor(() => expect(document.querySelector("[data-stream-fragment]")).toBeNull())
   })
 
+  it("renders streamed GFM tables and task lists without duplicating old fragments", async () => {
+    const done = deferred<void>()
+    let onDelta: (delta: string) => void = () => undefined
+    const parts = [
+      "# Обзор\n\nАбзац с `npm ci`.\n\n| Компонент | Роль |\n",
+      "| --- | --- |\n| Vite | Разработка |\n\n- [",
+      "x] Запустить\n- [ ] Проверить\n\n~~черновик~~\n\n```ts\n  const ",
+      "port = 5173\n```\n\n###### Примечание",
+    ]
+    const saved = { ...assistantMessage, content: parts.join("") }
+    renderChat({
+      load: vi.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([saved]),
+      send: async (_message, _signal, receive) => {
+        onDelta = receive
+        return done.promise
+      },
+    })
+
+    await screen.findByRole("heading", { name: "Напиши первое сообщение" })
+    await userEvent.type(screen.getByRole("textbox"), "Вопрос{Enter}")
+    const clock = vi.spyOn(performance, "now").mockReturnValue(100)
+    act(() => onDelta(parts[0]))
+    expect(screen.queryByRole("table")).not.toBeInTheDocument()
+    expect(screen.getByText("npm ci").closest("code")).toBeInTheDocument()
+
+    clock.mockReturnValue(200)
+    act(() => onDelta(parts[1]))
+    const table = screen.getByRole("table")
+    expect(table.parentElement).toHaveAttribute("tabindex", "0")
+    const column = screen.getByRole("columnheader", { name: "Компонент" })
+    const oldFragment = column.querySelector("[data-stream-fragment]")
+    expect(oldFragment).toHaveAttribute("data-stream-fragment", String(parts[0].length))
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument()
+
+    clock.mockReturnValue(300)
+    act(() => onDelta(parts[2]))
+    const [checked, unchecked] = screen.getAllByRole("checkbox")
+    expect(checked).toBeChecked()
+    expect(unchecked).not.toBeChecked()
+    expect(checked).toBeDisabled()
+    expect(unchecked).toBeDisabled()
+    expect(screen.getByText("черновик").closest("del")).toBeInTheDocument()
+    expect(screen.getByRole("table")).toBe(table)
+    expect(column.querySelector("[data-stream-fragment]")).toBe(oldFragment)
+
+    clock.mockReturnValue(350)
+    act(() => onDelta(parts[3]))
+    expect(document.querySelector("pre code")?.textContent).toBe("  const port = 5173\n")
+    expect(screen.getByRole("heading", { name: "Примечание", level: 6 })).toBeInTheDocument()
+    clock.mockRestore()
+    done.resolve(undefined)
+
+    await waitFor(() => expect(document.querySelector("[data-stream-fragment]")).toBeNull())
+    expect(screen.getAllByRole("table")).toHaveLength(1)
+    expect(screen.getAllByRole("checkbox")).toHaveLength(2)
+    expect(document.querySelector("pre code")?.textContent).toBe("  const port = 5173\n")
+  })
+
   it("smooths the new message once, follows chunks immediately and respects scrolling up", async () => {
     const done = deferred<void>()
     let onDelta: (delta: string) => void = () => undefined
