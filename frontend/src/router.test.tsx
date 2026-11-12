@@ -18,12 +18,15 @@ describe("session-based routing", () => {
     expect(router.state.location.pathname).toBe("/welcome")
   })
 
-  it("sends guests from pages that need a session to the landing page", async () => {
-    const { router } = renderWithSession("/", null)
+  it.each(["/", "/profile", "/chat"])(
+    "sends guests from %s, which needs a session, to the landing page",
+    async (path) => {
+      const { router } = renderWithSession(path, null)
 
-    expect(await screen.findByRole("heading", landingHeading)).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe("/welcome")
-  })
+      expect(await screen.findByRole("heading", landingHeading)).toBeInTheDocument()
+      expect(router.state.location.pathname).toBe("/welcome")
+    },
+  )
 
   it("lets users with a session into the app", async () => {
     const { router } = renderWithSession("/", intern)
