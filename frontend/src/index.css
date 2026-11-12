@@ -34,6 +34,40 @@
 
   --page-gutter: clamp(16px, 4vw, 48px);
   --page-max-width: 1280px;
+
+  /* how much the whole app is zoomed, see #root below */
+  --ui-zoom: 1;
+}
+
+/*
+ * The layouts are drawn for screens up to about 1920px wide. On a big monitor at 100% OS
+ * scaling, like a 27" 2560×1440 one, they would sit small in the middle, so the whole app
+ * (modals included) is zoomed proportionally, the way browser zoom does it. The height limits
+ * keep short windows, e.g. with DevTools open, at the normal size, so one-screen pages still fit.
+ *
+ * Viewport units are zoomed too: inside the app divide them by the zoom,
+ * e.g. `min-height: calc(100vh / var(--ui-zoom))`.
+ */
+@media (min-width: 1800px) and (min-height: 1000px) {
+  :root {
+    --ui-zoom: 1.1;
+  }
+}
+
+@media (min-width: 2200px) and (min-height: 1100px) {
+  :root {
+    --ui-zoom: 1.25;
+  }
+}
+
+@media (min-width: 3000px) and (min-height: 1600px) {
+  :root {
+    --ui-zoom: 1.5;
+  }
+}
+
+#root {
+  zoom: var(--ui-zoom);
 }
 
 *,
