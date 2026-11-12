@@ -8,7 +8,9 @@
   --color-surface: #ffffff;
   --color-text: #0b0b0f;
   --color-text-secondary: #5c5c70;
+  --color-text-danger: #d0142a;
   --color-border: #e8e8f1;
+  --color-border-strong: #d2d2e0;
   --color-field: #f4f4f9;
 
   --color-accent-green: #00e05a;

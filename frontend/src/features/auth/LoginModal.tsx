@@ -1,4 +1,5 @@
 import { Modal } from "../../shared/ui/Modal/Modal"
+import { LoginForm } from "./LoginForm"
 
 interface LoginModalProps {
   open: boolean
@@ -13,7 +14,8 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
       title="Вход в AI Buddy"
       description="Авторизуйся, чтобы продолжить"
     >
-      {/* TODO(#4): login form posting { username, password } to /api/login */}
+      {/* mounted only while open, so the typed password and errors do not outlive the modal */}
+      {open && <LoginForm />}
     </Modal>
   )
 }
