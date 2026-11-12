@@ -451,7 +451,7 @@
 
 @keyframes chat-enter {
   from {
-    opacity: 0.9;
+    opacity: 0.5;
     translate: 0 28px;
   }
 }
