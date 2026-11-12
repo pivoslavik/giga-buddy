@@ -282,6 +282,7 @@ describe("chat", () => {
     })
 
     await screen.findByRole("heading", { name: "Напиши первое сообщение" })
+    expect(screen.queryByRole("button", { name: "Прокрутить вниз" })).not.toBeInTheDocument()
     const log = screen.getByRole("log")
     const scrollTo = vi.fn()
     let height = 300
@@ -318,6 +319,122 @@ describe("chat", () => {
     height = 450
     act(() => onDelta(" и четвёртый"))
     expect(log.scrollTop).toBe(350)
+
+    done.resolve(undefined)
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Отправить сообщение" })).toBeEnabled(),
+    )
+  })
+
+  it("shows the latest-message button only when far from the end and jumps instantly with reduced motion", async () => {
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }))
+    renderChat({ load: async () => [assistantMessage], send: vi.fn() })
+    await screen.findByText("Подготовка")
+
+    const log = screen.getByRole("log")
+    Object.defineProperties(log, {
+      scrollHeight: { value: 700 },
+      clientHeight: { value: 200 },
+    })
+    const buttonName = { name: "Прокрутить вниз" }
+    log.scrollTop = 500
+    fireEvent.scroll(log)
+    expect(screen.queryByRole("button", buttonName)).not.toBeInTheDocument()
+
+    log.scrollTop = 430
+    fireEvent.scroll(log)
+    expect(screen.queryByRole("button", buttonName)).not.toBeInTheDocument()
+
+    log.scrollTop = 300
+    fireEvent.scroll(log)
+    const button = screen.getByRole("button", buttonName)
+    expect(button).toHaveAttribute("tabindex", "0")
+    await userEvent.click(button)
+
+    expect(log.scrollTop).toBe(500)
+    expect(log).toHaveFocus()
+    expect(button).toHaveAttribute("tabindex", "-1")
+    expect(screen.queryByRole("button", buttonName)).not.toBeInTheDocument()
+  })
+
+  it("keeps moving to the growing end, resumes following, and cancels on an upward gesture", async () => {
+    const done = deferred<void>()
+    let onDelta: (delta: string) => void = () => undefined
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }))
+    renderChat({
+      load: async () => [assistantMessage],
+      send: async (_message, _signal, receive) => {
+        onDelta = receive
+        return done.promise
+      },
+    })
+    await screen.findByText("Подготовка")
+    const log = screen.getByRole("log")
+    const scrollTo = vi.fn()
+    let height = 700
+    Object.defineProperties(log, {
+      scrollHeight: { get: () => height },
+      clientHeight: { value: 200 },
+      scrollTo: { value: scrollTo },
+    })
+    log.scrollTop = 100
+    fireEvent.scroll(log)
+    await userEvent.type(screen.getByRole("textbox"), "Вопрос{Enter}")
+    act(() => onDelta("Начало ответа "))
+
+    const frames = new Map<number, FrameRequestCallback>()
+    let frameId = 0
+    let now = 0
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      frames.set(++frameId, callback)
+      return frameId
+    })
+    vi.stubGlobal("cancelAnimationFrame", (id: number) => frames.delete(id))
+    function step() {
+      const callbacks = [...frames.values()]
+      frames.clear()
+      now += 16
+      act(() => callbacks.forEach((callback) => callback(now)))
+      fireEvent.scroll(log)
+    }
+
+    const buttonName = { name: "Прокрутить вниз" }
+    fireEvent.click(screen.getByRole("button", buttonName))
+    expect(frames.size).toBe(1)
+    step()
+    const beforeGrowth = log.scrollTop
+    expect(beforeGrowth).toBeGreaterThan(100)
+    height += 160
+    act(() => onDelta("и ещё один фрагмент. "))
+    expect(log.scrollTop).toBe(beforeGrowth)
+    expect(frames.size).toBe(1)
+    step()
+    expect(log.scrollTop).toBeGreaterThan(beforeGrowth)
+    expect(log.scrollTop).toBeLessThan(height - 200)
+
+    for (let count = 0; count < 80 && frames.size; count++) step()
+    expect(log.scrollTop).toBe(height - 200)
+    expect(frames.size).toBe(0)
+    expect(screen.queryByRole("button", buttonName)).not.toBeInTheDocument()
+
+    height += 70
+    act(() => onDelta("Следующий фрагмент. "))
+    expect(log.scrollTop).toBe(height - 200)
+    expect(frames.size).toBe(0)
+    expect(scrollTo).not.toHaveBeenCalled()
+
+    log.scrollTop = 100
+    fireEvent.scroll(log)
+    fireEvent.click(screen.getByRole("button", buttonName))
+    step()
+    fireEvent.wheel(log, { deltaY: -40 })
+    expect(frames.size).toBe(0)
+    log.scrollTop = 80
+    fireEvent.scroll(log)
+    height += 100
+    act(() => onDelta("Последняя часть ответа."))
+    expect(log.scrollTop).toBe(80)
+    expect(screen.getByRole("button", buttonName)).toBeInTheDocument()
 
     done.resolve(undefined)
     await waitFor(() =>

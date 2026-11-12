@@ -17,6 +17,12 @@ const dateFormat = new Intl.DateTimeFormat("ru-RU", {
 })
 
 const emptyReply = { content: "", fragments: [] as StreamFragment[] }
+const scrollButtonDistance = 96
+const atBottomDistance = 2
+
+function scrollBottom(element: HTMLElement) {
+  return Math.max(0, element.scrollHeight - element.clientHeight)
+}
 
 const arrowEaseOut = "cubic-bezier(0.16, 1, 0.3, 1)"
 const arrowRest = { transform: "none", opacity: 1 }
@@ -58,12 +64,16 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
   const [{ content: partial, fragments }, setPartial] = useState(emptyReply)
   const [newReplyId, setNewReplyId] = useState<string>()
   const [sendError, setSendError] = useState(false)
+  const [showScrollButton, setShowScrollButton] = useState(false)
   const request = useRef<AbortController | null>(null)
   const timeline = useRef<HTMLDivElement>(null)
+  const scrollButton = useRef<HTMLButtonElement>(null)
   const sendArrow = useRef<HTMLSpanElement>(null)
   const arrowAnimation = useRef<Animation | null>(null)
   const followTail = useRef(true)
   const smoothTop = useRef<number | null>(null)
+  const latestScroll = useRef<{ frame: number; top: number } | null>(null)
+  const touchStart = useRef<{ x: number; y: number } | null>(null)
   const lastLayout = useRef<{ target: number; outgoing?: Message; replyId?: string }>(undefined)
 
   const initial = Array.from(displayName.trim())[0]?.toLocaleUpperCase("ru-RU") || "?"
@@ -76,21 +86,28 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
     }
   }
 
-  useEffect(() => () => request.current?.abort(), [])
+  useEffect(
+    () => () => {
+      request.current?.abort()
+      if (latestScroll.current) cancelAnimationFrame(latestScroll.current.frame)
+    },
+    [],
+  )
 
   useLayoutEffect(() => {
     const element = timeline.current
     if (!element) return
 
-    const target = Math.max(0, element.scrollHeight - element.clientHeight)
+    const target = scrollBottom(element)
     const previous = lastLayout.current
     lastLayout.current = { target, outgoing, replyId: newReplyId }
-    if (
-      !followTail.current ||
-      target === previous?.target ||
-      Math.abs(target - element.scrollTop) <= 1
-    )
+    if (latestScroll.current) return
+    if (!followTail.current) {
+      setShowScrollButton(target - element.scrollTop > scrollButtonDistance)
       return
+    }
+
+    if (target === previous?.target || Math.abs(target - element.scrollTop) <= 1) return
 
     const newMessage =
       (outgoing && outgoing !== previous?.outgoing) ||
@@ -109,6 +126,93 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
       element.scrollTop = target
     }
   }, [history.data, outgoing, partial, newReplyId])
+
+  function stopLatestScroll() {
+    if (latestScroll.current) cancelAnimationFrame(latestScroll.current.frame)
+    latestScroll.current = null
+  }
+
+  function updateScrollPosition(element: HTMLDivElement) {
+    const bottom = scrollBottom(element)
+    const top = element.scrollTop
+    const motion = latestScroll.current
+    if (motion) {
+      if (top + 1 >= Math.min(motion.top, bottom)) return
+      stopLatestScroll()
+    }
+
+    const atBottom = bottom - top <= atBottomDistance
+    if (smoothTop.current !== null && top >= smoothTop.current && !atBottom) {
+      smoothTop.current = top
+      return
+    }
+    smoothTop.current = null
+    followTail.current = atBottom
+    setShowScrollButton(bottom - top > scrollButtonDistance)
+  }
+
+  function stopFollowing(element: HTMLDivElement) {
+    followTail.current = false
+    stopLatestScroll()
+    if (smoothTop.current !== null) {
+      smoothTop.current = null
+      element.scrollTo({ top: element.scrollTop, behavior: "instant" })
+    }
+    setShowScrollButton(scrollBottom(element) - element.scrollTop > scrollButtonDistance)
+  }
+
+  function scrollToLatest() {
+    const element = timeline.current
+    if (!element || latestScroll.current) return
+
+    function finish(element: HTMLDivElement, bottom: number) {
+      stopLatestScroll()
+      element.scrollTop = bottom
+      followTail.current = true
+      if (document.activeElement === scrollButton.current) element.focus({ preventScroll: true })
+      setShowScrollButton(false)
+    }
+
+    if (!window.matchMedia?.("(prefers-reduced-motion: no-preference)").matches) {
+      smoothTop.current = null
+      finish(element, scrollBottom(element))
+      return
+    }
+
+    stopFollowing(element)
+    const motion = { frame: 0, top: element.scrollTop }
+    latestScroll.current = motion
+    let startedAt: number | undefined
+    let lastFrameAt: number | undefined
+
+    function advance(now: number) {
+      if (latestScroll.current !== motion || !element) return
+      const bottom = scrollBottom(element)
+      const top = element.scrollTop
+      if (top + 1 < Math.min(motion.top, bottom)) {
+        stopFollowing(element)
+        return
+      }
+
+      const distance = bottom - top
+      if (distance <= 1) {
+        finish(element, bottom)
+        return
+      }
+
+      // Keep one animation running against the live bottom while the reply grows.
+      startedAt ??= now
+      const elapsed = Math.min(32, now - (lastFrameAt ?? now - 16))
+      lastFrameAt = now
+      const ramp = Math.min(1, (now - startedAt + 16) / 96)
+      const step = Math.max(1, distance * (1 - Math.exp((-elapsed * ramp) / 70)))
+      element.scrollTop = Math.min(bottom, top + step)
+      motion.top = element.scrollTop
+      motion.frame = requestAnimationFrame(advance)
+    }
+
+    motion.frame = requestAnimationFrame(advance)
+  }
 
   function moveArrow(motion: keyof typeof arrowMotions) {
     const element = sendArrow.current
@@ -217,72 +321,105 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
           </header>
 
           <div
-            ref={timeline}
-            className={styles.timeline}
-            role="log"
-            aria-label="История сообщений"
-            onScroll={(event) => {
-              const { scrollHeight, clientHeight, scrollTop } = event.currentTarget
-              const atBottom = scrollHeight - clientHeight - scrollTop <= 2
-              if (smoothTop.current !== null && scrollTop >= smoothTop.current && !atBottom) {
-                smoothTop.current = scrollTop
-                return
-              }
-              smoothTop.current = null
-              followTail.current = atBottom
-            }}
+            className={styles.timelineFrame}
             onWheel={(event) => {
-              if (event.deltaY < 0 && smoothTop.current !== null) {
-                smoothTop.current = null
-                followTail.current = false
-                event.currentTarget.scrollTo({
-                  top: event.currentTarget.scrollTop,
-                  behavior: "instant",
-                })
+              const element = timeline.current
+              if (element && event.deltaY < 0 && -event.deltaY > Math.abs(event.deltaX)) {
+                stopFollowing(element)
+              }
+            }}
+            onTouchStart={(event) => {
+              const touch = event.touches[0]
+              touchStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null
+            }}
+            onTouchMove={(event) => {
+              const touch = event.touches[0]
+              const start = touchStart.current
+              const element = timeline.current
+              if (
+                element &&
+                touch &&
+                start &&
+                touch.clientY - start.y > Math.max(3, Math.abs(touch.clientX - start.x))
+              ) {
+                stopFollowing(element)
+              }
+            }}
+            onKeyDown={(event) => {
+              const element = timeline.current
+              if (
+                element &&
+                (["ArrowUp", "PageUp", "Home"].includes(event.key) ||
+                  (event.key === " " && event.shiftKey))
+              ) {
+                stopFollowing(element)
               }
             }}
           >
-            {history.isPending && <p className={styles.state}>Загружаем историю…</p>}
-            {history.isError && (
-              <div className={styles.state}>
-                <p role="alert">Не удалось загрузить историю.</p>
-                <button
-                  type="button"
-                  onClick={() => void history.refetch()}
-                  disabled={history.isFetching}
-                >
-                  Повторить
-                </button>
-              </div>
-            )}
-            {history.isSuccess && messages.length === 0 && <ChatEmptyState />}
-            {messages.map((message, index) => {
-              const date = new Date(message.created_at)
-              const day = date.toDateString()
-              const previousDay = index && new Date(messages[index - 1].created_at).toDateString()
-              return (
-                <div key={message.id}>
-                  {day !== previousDay && (
-                    <p className={styles.day}>
-                      {day === today ? "Сегодня" : dateFormat.format(date)}
-                    </p>
-                  )}
-                  <ChatMessage
-                    message={message}
-                    initial={initial}
-                    entering={message === outgoing || message.id === newReplyId}
-                    streamFragments={message.id === "pending-assistant" ? fragments : undefined}
-                    onEnterEnd={
-                      message.id === newReplyId ? () => setNewReplyId(undefined) : undefined
-                    }
-                  />
+            <div
+              ref={timeline}
+              className={styles.timeline}
+              role="log"
+              aria-label="История сообщений"
+              tabIndex={-1}
+              onScroll={(event) => updateScrollPosition(event.currentTarget)}
+            >
+              {history.isPending && <p className={styles.state}>Загружаем историю…</p>}
+              {history.isError && (
+                <div className={styles.state}>
+                  <p role="alert">Не удалось загрузить историю.</p>
+                  <button
+                    type="button"
+                    onClick={() => void history.refetch()}
+                    disabled={history.isFetching}
+                  >
+                    Повторить
+                  </button>
                 </div>
-              )
-            })}
-            {sending && !partial && (
-              <p className={styles.pending} role="status">
-                <span className={styles.waitingLabel}>AI Buddy готовит ответ…</span>
-              </p>
+              )}
+              {history.isSuccess && messages.length === 0 && <ChatEmptyState />}
+              {messages.map((message, index) => {
+                const date = new Date(message.created_at)
+                const day = date.toDateString()
+                const previousDay = index && new Date(messages[index - 1].created_at).toDateString()
+                return (
+                  <div key={message.id}>
+                    {day !== previousDay && (
+                      <p className={styles.day}>
+                        {day === today ? "Сегодня" : dateFormat.format(date)}
+                      </p>
+                    )}
+                    <ChatMessage
+                      message={message}
+                      initial={initial}
+                      entering={message === outgoing || message.id === newReplyId}
+                      streamFragments={message.id === "pending-assistant" ? fragments : undefined}
+                      onEnterEnd={
+                        message.id === newReplyId ? () => setNewReplyId(undefined) : undefined
+                      }
+                    />
+                  </div>
+                )
+              })}
+              {sending && !partial && (
+                <p className={styles.pending} role="status">
+                  <span className={styles.waitingLabel}>AI Buddy готовит ответ…</span>
+                </p>
+              )}
+            </div>
+            {messages.length > 0 && (
+              <button
+                ref={scrollButton}
+                className={styles.scrollToLatest}
+                type="button"
+                aria-label="Прокрутить вниз"
+                aria-hidden={!showScrollButton}
+                tabIndex={showScrollButton ? 0 : -1}
+                data-visible={showScrollButton || undefined}
+                onClick={scrollToLatest}
+              >
+                <ArrowRightIcon />
+              </button>
             )}
           </div>
 

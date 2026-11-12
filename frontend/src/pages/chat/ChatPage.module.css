@@ -73,6 +73,14 @@
   background: currentColor;
 }
 
+.timelineFrame {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
 .timeline {
   min-height: 0;
   flex: 1;
@@ -82,6 +90,68 @@
   scrollbar-width: thin;
   margin: 9px -12px 0 0;
   padding: 0 20px 6px 0;
+}
+
+.scrollToLatest {
+  --scroll-button-duration: 275ms;
+
+  position: absolute;
+  z-index: 1;
+  inset-block-end: 6px;
+  inset-inline-start: 50%;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #ded5f6;
+  border-radius: 50%;
+  background: #faf7ff;
+  box-shadow: 0 3px 12px rgb(55 37 103 / 0.15);
+  color: #574084;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  translate: -50% 10px;
+  transition:
+    opacity var(--scroll-button-duration) var(--chat-cinematic-out),
+    translate var(--scroll-button-duration) var(--chat-cinematic-out),
+    visibility 0s linear var(--scroll-button-duration),
+    background-color 180ms var(--chat-ease-out),
+    transform 180ms var(--chat-ease-out);
+}
+
+.scrollToLatest[data-visible] {
+  --scroll-button-duration: 400ms;
+
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+  translate: -50% 0;
+  transition-delay: 0s;
+}
+
+.scrollToLatest svg {
+  width: 21px;
+  height: 21px;
+  transform: rotate(90deg);
+  transition: translate 200ms var(--chat-ease-out);
+}
+
+@media (hover: hover) {
+  .scrollToLatest:hover {
+    background: #eee7fd;
+  }
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .scrollToLatest:hover {
+    transform: translateY(-2px);
+  }
+
+  .scrollToLatest:hover svg {
+    translate: 0 4px;
+  }
 }
 
 .emptyState {
@@ -596,6 +666,10 @@
     animation: chat-enter 1150ms var(--chat-cinematic-out);
   }
 
+  .scrollToLatest:active {
+    transform: translateY(1px) scale(0.96);
+  }
+
   .emptyBubbleBlue {
     --empty-float-low: 3px;
     --empty-float-high: -3px;
@@ -619,6 +693,15 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .scrollToLatest,
+  .scrollToLatest svg {
+    transition: none !important;
+  }
+
+  .scrollToLatest {
+    translate: -50% 0;
+  }
+
   .streamFragment {
     opacity: 1 !important;
   }
