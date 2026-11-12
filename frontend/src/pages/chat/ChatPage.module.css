@@ -443,6 +443,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .streamFragment {
+    opacity: 1 !important;
+  }
+
   .sendArrow {
     transform: none !important;
     opacity: 1 !important;

@@ -155,9 +155,13 @@ describe("chat", () => {
     act(() => onDelta("Часть "))
     expect(screen.getByText("Часть")).toBeInTheDocument()
     const liveReply = screen.getByText("Часть").closest("article")
-    expect(liveReply).toHaveAttribute("data-entering", "true")
+    expect(liveReply).not.toHaveAttribute("data-entering")
+    const firstFragment = liveReply?.querySelector("[data-stream-fragment]")
+    expect(firstFragment).toHaveAttribute("data-stream-fragment", "6")
     act(() => onDelta("ответа"))
-    expect(screen.getByText("Часть ответа").closest("article")).toBe(liveReply)
+    expect(screen.getByText("ответа").closest("article")).toBe(liveReply)
+    expect(liveReply?.querySelector("[data-stream-fragment='6']")).toBe(firstFragment)
+    expect(liveReply?.querySelector("[data-stream-fragment='12']")).toHaveTextContent("ответа")
     expect(historyItem).not.toHaveAttribute("data-entering")
 
     done.resolve(undefined)
@@ -166,6 +170,44 @@ describe("chat", () => {
     )
     expect(screen.getByText("Подготовка").closest("article")).toBe(historyItem)
     expect(screen.getByText("Часть ответа").closest("article")).not.toHaveAttribute("data-entering")
+    expect(document.querySelector("[data-stream-fragment]")).toBeNull()
+  })
+
+  it("retains fragment boundaries when Markdown changes the rendered structure", async () => {
+    const done = deferred<void>()
+    let onDelta: (delta: string) => void = () => undefined
+    const saved = { ...assistantMessage, content: "**Старый текст**\n\n```js\nconst x = 1\n```" }
+    renderChat({
+      load: vi.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([saved]),
+      send: async (_message, _signal, receive) => {
+        onDelta = receive
+        return done.promise
+      },
+    })
+
+    await screen.findByText("Напиши первое сообщение.")
+    await userEvent.type(screen.getByRole("textbox"), "Вопрос{Enter}")
+    const receivedAt = vi.spyOn(performance, "now").mockReturnValue(100)
+    act(() => onDelta("**Старый"))
+    expect(screen.getByText("**Старый")).toHaveAttribute("data-stream-fragment", "8")
+    receivedAt.mockReturnValue(200)
+    act(() => onDelta(" текст**\n\n```js\nconst "))
+    const strong = document.querySelector("strong")
+    expect(strong?.querySelector("[data-stream-fragment='8']")).toHaveTextContent("Старый")
+    expect(strong).toHaveTextContent("Старый текст")
+    const firstCode = document.querySelector("pre code [data-stream-fragment]")
+    expect(firstCode).toHaveTextContent("const")
+
+    receivedAt.mockReturnValue(510)
+    act(() => onDelta("x = 1\n```"))
+    expect(strong?.querySelector("[data-stream-fragment='8']")).toBeNull()
+    expect(strong).toHaveTextContent("Старый текст")
+    expect(document.querySelector("pre code [data-stream-fragment]")).toBe(firstCode)
+    expect(screen.getByText("x = 1")).toHaveAttribute("data-stream-fragment")
+    expect(document.querySelector("pre code")).toHaveTextContent("const x = 1")
+    receivedAt.mockRestore()
+    done.resolve(undefined)
+    await waitFor(() => expect(document.querySelector("[data-stream-fragment]")).toBeNull())
   })
 
   it("smooths the new message once, follows chunks immediately and respects scrolling up", async () => {

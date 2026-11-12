@@ -1,8 +1,13 @@
-import { useState } from "react"
+import { useLayoutEffect, useRef, useState } from "react"
 import Markdown, { type Components } from "react-markdown"
 import { LogoMark } from "../../shared/ui/Logo/Logo"
 import type { ChatMessage as Message } from "./chatApi"
 import styles from "./ChatPage.module.css"
+import {
+  fragmentFadeDuration,
+  markStreamingMarkdown,
+  type StreamFragment,
+} from "./streamingMarkdown"
 
 const timeFormat = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" })
 
@@ -26,7 +31,7 @@ interface ChatMessageProps {
   message: Message
   initial: string
   entering: boolean
-  streaming: boolean
+  streamFragments?: readonly StreamFragment[]
   onEnterEnd?: () => void
 }
 
@@ -34,11 +39,46 @@ export function ChatMessage({
   message,
   initial,
   entering,
-  streaming,
+  streamFragments,
   onEnterEnd,
 }: ChatMessageProps) {
   const assistant = message.role === "assistant"
   const [copyStatus, setCopyStatus] = useState("")
+  const bubble = useRef<HTMLDivElement>(null)
+  const animations = useRef(new WeakMap<HTMLElement, { end: number; animation: Animation }>())
+
+  useLayoutEffect(() => {
+    if (
+      !streamFragments?.length ||
+      !window.matchMedia?.("(prefers-reduced-motion: no-preference)").matches
+    )
+      return
+
+    const fragments = new Map(streamFragments.map((fragment) => [fragment.end, fragment]))
+    for (const element of bubble.current?.querySelectorAll<HTMLElement>("[data-stream-fragment]") ??
+      []) {
+      const end = Number(element.dataset.streamFragment)
+      const previous = animations.current.get(element)
+      if (previous?.end === end) continue
+      previous?.animation.cancel()
+
+      const fragment = fragments.get(end)
+      if (
+        !fragment ||
+        !element.animate ||
+        performance.now() - fragment.receivedAt >= fragmentFadeDuration
+      )
+        continue
+      const animation = element.animate([{ opacity: 0.3 }, { opacity: 1 }], {
+        duration: fragmentFadeDuration,
+        easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+        fill: "backwards",
+      })
+      // Reparsed Markdown can replace the DOM node. Keep the fragment's original clock.
+      animation.startTime = fragment.receivedAt
+      animations.current.set(element, { end, animation })
+    }
+  }, [message.content, streamFragments])
 
   async function copy() {
     try {
@@ -54,7 +94,7 @@ export function ChatMessage({
       className={`${styles.message} ${assistant ? styles.assistant : styles.user}`}
       aria-label={assistant ? "AI Buddy" : "Вы"}
       data-entering={entering || undefined}
-      data-streaming={streaming || undefined}
+      data-streaming={streamFragments ? true : undefined}
       onAnimationEnd={(event) => {
         if (event.target === event.currentTarget) onEnterEnd?.()
       }}
@@ -66,8 +106,16 @@ export function ChatMessage({
         <time className={styles.time} dateTime={message.created_at}>
           {timeFormat.format(new Date(message.created_at))}
         </time>
-        <div className={styles.bubble}>
-          <Markdown skipHtml components={assistant ? markdownComponents : undefined}>
+        <div ref={bubble} className={styles.bubble}>
+          <Markdown
+            skipHtml
+            components={assistant ? markdownComponents : undefined}
+            rehypePlugins={
+              streamFragments
+                ? [markStreamingMarkdown(message.content, streamFragments, styles.streamFragment)]
+                : undefined
+            }
+          >
             {message.content}
           </Markdown>
         </div>

@@ -7,12 +7,15 @@ import { Logo } from "../../shared/ui/Logo/Logo"
 import type { ChatMessage as Message, ChatTransport } from "./chatApi"
 import { ChatMessage } from "./ChatMessage"
 import styles from "./ChatPage.module.css"
+import { fragmentFadeDuration, type StreamFragment } from "./streamingMarkdown"
 
 const dateFormat = new Intl.DateTimeFormat("ru-RU", {
   day: "numeric",
   month: "long",
   year: "numeric",
 })
+
+const emptyReply = { content: "", fragments: [] as StreamFragment[] }
 
 const arrowEaseOut = "cubic-bezier(0.16, 1, 0.3, 1)"
 const arrowRest = { transform: "none", opacity: 1 }
@@ -51,7 +54,7 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
   })
   const [draft, setDraft] = useState("")
   const [outgoing, setOutgoing] = useState<Message>()
-  const [partial, setPartial] = useState("")
+  const [{ content: partial, fragments }, setPartial] = useState(emptyReply)
   const [newReplyId, setNewReplyId] = useState<string>()
   const [sendError, setSendError] = useState(false)
   const request = useRef<AbortController | null>(null)
@@ -155,7 +158,20 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
       await transport.send(message, controller.signal, (delta) => {
         if (!controller.signal.aborted && delta) {
           showedPartial = true
-          setPartial((current) => current + delta)
+          const receivedAt = performance.now()
+          setPartial((current) => ({
+            content: current.content + delta,
+            fragments: [
+              ...current.fragments.filter(
+                (fragment) => receivedAt - fragment.receivedAt < fragmentFadeDuration,
+              ),
+              {
+                start: current.content.length,
+                end: current.content.length + delta.length,
+                receivedAt,
+              },
+            ],
+          }))
         }
       })
       if (!controller.signal.aborted) {
@@ -174,7 +190,7 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
       request.current = null
       if (!controller.signal.aborted) {
         setOutgoing(undefined)
-        setPartial("")
+        setPartial(emptyReply)
       }
     }
   }
@@ -255,12 +271,8 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
                   <ChatMessage
                     message={message}
                     initial={initial}
-                    entering={
-                      message === outgoing ||
-                      message.id === "pending-assistant" ||
-                      message.id === newReplyId
-                    }
-                    streaming={message.id === "pending-assistant"}
+                    entering={message === outgoing || message.id === newReplyId}
+                    streamFragments={message.id === "pending-assistant" ? fragments : undefined}
                     onEnterEnd={
                       message.id === newReplyId ? () => setNewReplyId(undefined) : undefined
                     }
