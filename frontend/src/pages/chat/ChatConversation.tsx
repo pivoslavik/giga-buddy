@@ -5,6 +5,7 @@ import { AppHeader } from "../../shared/ui/AppHeader/AppHeader"
 import { ArrowRightIcon } from "../../shared/ui/icons/icons"
 import { Logo } from "../../shared/ui/Logo/Logo"
 import type { ChatMessage as Message, ChatTransport } from "./chatApi"
+import { ChatEmptyState } from "./ChatEmptyState"
 import { ChatMessage } from "./ChatMessage"
 import styles from "./ChatPage.module.css"
 import { fragmentFadeDuration, type StreamFragment } from "./streamingMarkdown"
@@ -254,9 +255,7 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
                 </button>
               </div>
             )}
-            {history.isSuccess && messages.length === 0 && (
-              <p className={styles.state}>Напиши первое сообщение.</p>
-            )}
+            {history.isSuccess && messages.length === 0 && <ChatEmptyState />}
             {messages.map((message, index) => {
               const date = new Date(message.created_at)
               const day = date.toDateString()

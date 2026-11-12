@@ -84,6 +84,50 @@
   padding: 0 20px 6px 0;
 }
 
+.emptyState {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 8px clamp(20px, 10dvh, 108px);
+  text-align: center;
+}
+
+.emptyIllustration {
+  position: relative;
+  width: min(100%, clamp(164px, 25vw, 332px), clamp(128px, 38dvh, 332px));
+  flex: none;
+  overflow: clip;
+}
+
+.emptyIllustration > svg {
+  width: 100%;
+}
+
+.emptyBubble {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+}
+
+.emptyState h2 {
+  margin-top: 9px;
+  font-size: clamp(20px, 2.2vw, 32px);
+  font-weight: 850;
+  line-height: 1.16;
+  letter-spacing: -0.025em;
+}
+
+.emptyState p {
+  max-width: 21em;
+  margin-top: 10px;
+  color: #586790;
+  font-size: clamp(14px, 1.25vw, 18px);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
 .day {
   display: flex;
   align-items: center;
@@ -434,6 +478,20 @@
     animation: chat-enter 1150ms var(--chat-cinematic-out);
   }
 
+  .emptyBubbleBlue {
+    --empty-float-low: 3px;
+    --empty-float-high: -3px;
+
+    animation: empty-float 4.5s ease-in-out infinite;
+  }
+
+  .emptyBubblePurple {
+    --empty-float-low: 2px;
+    --empty-float-high: -2px;
+
+    animation: empty-float 5.5s ease-in-out -0.9s infinite;
+  }
+
   .composer button:active:not(:disabled),
   .state button:active:not(:disabled),
   .referenceLink:active,
@@ -457,6 +515,17 @@
   from {
     opacity: 0.5;
     translate: 0 28px;
+  }
+}
+
+@keyframes empty-float {
+  0%,
+  100% {
+    translate: 0 var(--empty-float-low);
+  }
+
+  50% {
+    translate: 0 var(--empty-float-high);
   }
 }
 
@@ -488,6 +557,10 @@
 }
 
 @media (max-width: 700px) {
+  .emptyState {
+    padding-bottom: clamp(16px, 5dvh, 36px);
+  }
+
   .intro {
     padding-inline: 0;
   }

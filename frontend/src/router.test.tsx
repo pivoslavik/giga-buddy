@@ -67,7 +67,12 @@ describe("session-based routing", () => {
     const { router, fetchMock } = renderApp("/chat", user)
 
     expect(await screen.findByRole("heading", { name: "Чат с AI Buddy" })).toBeInTheDocument()
-    expect(await screen.findByText("Напиши первое сообщение.")).toBeInTheDocument()
+    expect(
+      await screen.findByRole("heading", { name: "Напиши первое сообщение" }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText("Задай вопрос, попроси помочь с задачей или узнай что-то о проекте"),
+    ).toBeInTheDocument()
     expect(screen.queryByRole("article")).not.toBeInTheDocument()
     expect(screen.queryByRole("alert")).not.toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Чат" })).toHaveAttribute("aria-current", "page")

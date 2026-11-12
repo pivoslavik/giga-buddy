@@ -79,10 +79,11 @@ describe("chat", () => {
     vi.stubGlobal("fetch", fetchMock)
     renderChat()
 
-    await screen.findByText("Напиши первое сообщение.")
+    const emptyHeading = await screen.findByRole("heading", { name: "Напиши первое сообщение" })
     await userEvent.type(screen.getByRole("textbox"), "  Как начать?  {Enter}")
 
     expect(screen.getByText("Как начать?")).toBeInTheDocument()
+    expect(emptyHeading).not.toBeInTheDocument()
     expect(screen.getByText("AI Buddy готовит ответ…")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Отправить сообщение" })).toBeDisabled()
     expect(fetchMock).toHaveBeenNthCalledWith(
@@ -120,7 +121,7 @@ describe("chat", () => {
     )
     renderChat()
 
-    await screen.findByText("Напиши первое сообщение.")
+    await screen.findByRole("heading", { name: "Напиши первое сообщение" })
     const input = screen.getByRole("textbox")
     await userEvent.type(input, "Повторить{Enter}")
 
@@ -185,7 +186,7 @@ describe("chat", () => {
       },
     })
 
-    await screen.findByText("Напиши первое сообщение.")
+    await screen.findByRole("heading", { name: "Напиши первое сообщение" })
     await userEvent.type(screen.getByRole("textbox"), "Вопрос{Enter}")
     const receivedAt = vi.spyOn(performance, "now").mockReturnValue(100)
     act(() => onDelta("**Старый"))
@@ -222,7 +223,7 @@ describe("chat", () => {
       },
     })
 
-    await screen.findByText("Напиши первое сообщение.")
+    await screen.findByRole("heading", { name: "Напиши первое сообщение" })
     const log = screen.getByRole("log")
     const scrollTo = vi.fn()
     let height = 300
