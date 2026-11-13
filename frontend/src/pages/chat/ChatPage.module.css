@@ -8,12 +8,6 @@
   margin-inline: auto;
 }
 
-.preview {
-  min-height: calc(100dvh / var(--ui-zoom));
-  padding-inline: max(16px, calc((100% - 1130px) / 2));
-  background: #f4f7fe;
-}
-
 .intro {
   padding: 13px 7px 14px;
 }
@@ -40,10 +34,6 @@
   border: 1px solid #dcd8fc;
   border-radius: 18px;
   background: #fafbfe;
-}
-
-.preview .panel {
-  height: clamp(405px, calc(100dvh / var(--ui-zoom) - 207px), 900px);
 }
 
 .panelHeader {
@@ -166,7 +156,7 @@
 
 .emptyState {
   display: flex;
-  min-height: 100%;
+  height: 100%;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -181,12 +171,15 @@
     clamp(164px, calc(25vw / var(--ui-zoom)), 332px),
     clamp(128px, calc(38dvh / var(--ui-zoom)), 332px)
   );
-  flex: none;
+  min-height: 0;
+  flex-shrink: 1;
+  aspect-ratio: 336 / 236;
   overflow: clip;
 }
 
 .emptyIllustration > svg {
   width: 100%;
+  height: 100%;
 }
 
 .emptyBubble {
@@ -196,6 +189,7 @@
 }
 
 .emptyState h2 {
+  flex: none;
   margin-top: 9px;
   font-size: clamp(20px, 2.2vw, 32px);
   font-weight: 850;
@@ -204,6 +198,7 @@
 }
 
 .emptyState p {
+  flex: none;
   max-width: 21em;
   margin-top: 10px;
   color: #586790;
@@ -671,11 +666,6 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .preview {
-    /* Keep the entry offset from expanding the document's scrollable area. */
-    overflow-y: clip;
-  }
-
   .content {
     animation: chat-enter 1150ms var(--chat-cinematic-out);
   }
@@ -799,10 +789,6 @@
   .panel {
     height: max(390px, calc(100dvh / var(--ui-zoom) - var(--chat-layout-space)));
     padding: 0 10px 11px;
-  }
-
-  .preview .panel {
-    height: max(390px, calc(100dvh / var(--ui-zoom) - 235px));
   }
 
   .panelHeader {
