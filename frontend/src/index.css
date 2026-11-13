@@ -1,0 +1,139 @@
+:root {
+  color-scheme: light;
+
+  --font-sans:
+    "Manrope Variable", "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --color-bg: #f6f6fb;
+  --color-surface: #ffffff;
+  --color-text: #0b0b0f;
+  --color-text-secondary: #5c5c70;
+  --color-text-danger: #d0142a;
+  --color-border: #e8e8f1;
+  --color-border-strong: #d2d2e0;
+  --color-field: #f4f4f9;
+
+  --color-accent-green: #00e05a;
+  --color-accent-blue: #00aaff;
+  --color-accent-purple: #965eeb;
+  --color-accent-red: #ff4053;
+
+  --color-soft-green: #dcf9e6;
+  --color-soft-purple: #eee5fd;
+  --color-soft-blue: #ddefff;
+
+  --color-overlay: rgb(24 24 48 / 0.45);
+
+  --radius-s: 12px;
+  --radius-m: 16px;
+  --radius-l: 24px;
+  --radius-pill: 999px;
+
+  --shadow-card: 0 1px 2px rgb(16 16 40 / 0.04), 0 8px 24px rgb(16 16 40 / 0.06);
+  --shadow-modal: 0 24px 64px rgb(16 16 40 / 0.24);
+
+  --page-gutter: clamp(16px, 4vw, 48px);
+  --page-max-width: 1280px;
+
+  /* how much the whole app is zoomed, see #root below */
+  --ui-zoom: 1;
+}
+
+/*
+ * The layouts are drawn for screens up to about 1920px wide. On a big monitor at 100% OS
+ * scaling, like a 27" 2560×1440 one, they would sit small in the middle, so the whole app
+ * (modals included) is zoomed proportionally, the way browser zoom does it. The height limits
+ * keep short windows, e.g. with DevTools open, at the normal size, so one-screen pages still fit.
+ *
+ * Viewport units are zoomed too: inside the app divide them by the zoom,
+ * e.g. `min-height: calc(100vh / var(--ui-zoom))`.
+ */
+@media (min-width: 1800px) and (min-height: 1000px) {
+  :root {
+    --ui-zoom: 1.1;
+  }
+}
+
+@media (min-width: 2200px) and (min-height: 1100px) {
+  :root {
+    --ui-zoom: 1.25;
+  }
+}
+
+@media (min-width: 3000px) and (min-height: 1600px) {
+  :root {
+    --ui-zoom: 1.5;
+  }
+}
+
+#root {
+  zoom: var(--ui-zoom);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-accent-blue);
+  outline-offset: 2px;
+}
+
+/*
+ * People who turned animations off in the OS get the final state of every animation
+ * right away: entrance effects are skipped, idle loops and transitions stop.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

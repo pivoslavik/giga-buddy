@@ -1,0 +1,25 @@
+/* the app is zoomed on big monitors, so the full height is divided by the zoom, see index.css */
+.layout {
+  min-height: calc(100vh / var(--ui-zoom));
+  overflow-x: clip;
+  background:
+    radial-gradient(50% 40% at 85% 8%, rgb(150 94 235 / 0.14), transparent 70%),
+    radial-gradient(45% 40% at 10% 60%, rgb(150 94 235 / 0.08), transparent 70%),
+    radial-gradient(40% 35% at 95% 95%, rgb(0 170 255 / 0.06), transparent 70%), #f3f1fb;
+}
+
+.container {
+  max-width: calc(var(--page-max-width) + 2 * var(--page-gutter));
+  margin: 0 auto;
+  padding: 0 var(--page-gutter) 48px;
+}
+
+.main {
+  padding-top: 28px;
+}
+
+@media (max-width: 720px) {
+  .main {
+    padding-top: 24px;
+  }
+}

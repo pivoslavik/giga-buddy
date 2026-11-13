@@ -1,0 +1,33 @@
+# Виртуальное окружение
+.venv/
+venv/
+
+# Кеш Python
+**/__pycache__/
+**/*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Переменные окружения и credentials
+.env
+.env.*
+!.env.example
+credentials.json
+**/*credentials*.json
+token.json
+Dockerfile
+
+# Скачанные документы
+documents/
+
+# Git и редакторы
+.git/
+.idea/
+.vscode/
+**/*.swp
+**/*.swo
+.DS_Store
+
+# Логи
+*.log

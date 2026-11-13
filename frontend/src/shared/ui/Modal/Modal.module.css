@@ -1,0 +1,100 @@
+.dialog {
+  /* the app is zoomed on big monitors, see index.css */
+  width: min(440px, calc(100vw / var(--ui-zoom) - 32px));
+  max-height: calc(100dvh / var(--ui-zoom) - 32px);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-l);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-modal);
+  overflow: auto;
+}
+
+.dialog::backdrop {
+  background: var(--color-overlay);
+  backdrop-filter: blur(2px);
+}
+
+.dialog[open] {
+  animation: modal-in 0.2s ease-out;
+}
+
+.dialog[open]::backdrop {
+  animation: backdrop-in 0.2s ease-out;
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog[open],
+  .dialog[open]::backdrop {
+    animation: none;
+  }
+}
+
+/* the page behind an open modal should not scroll */
+:global(body:has(dialog[open])) {
+  overflow: hidden;
+}
+
+.content {
+  position: relative;
+  padding: 40px 32px 32px;
+}
+
+.close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  transition: background-color 0.15s ease;
+}
+
+.close:hover {
+  background: var(--color-field);
+}
+
+.title {
+  padding-right: 32px;
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.description {
+  margin-top: 8px;
+  color: var(--color-text-secondary);
+}
+
+.body {
+  margin-top: 24px;
+}
+
+@media (max-width: 480px) {
+  .content {
+    padding: 32px 20px 24px;
+  }
+
+  .title {
+    font-size: 24px;
+  }
+}

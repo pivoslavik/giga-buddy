@@ -1,0 +1,152 @@
+import { randomUUID } from "node:crypto"
+import type { IncomingMessage, ServerResponse } from "node:http"
+import type { Plugin } from "vite"
+
+/*
+ * Fake backend for `npm run dev:mock`: answers the endpoints the frontend uses, so the login flow
+ * can be clicked through without docker compose. It follows the backend contract:
+ * POST /api/auth/login (#6, #36), GET /api/user (#9) and POST /api/auth/logout.
+ * Sessions live in memory until a restart; access tokens never expire here, so
+ * POST /api/auth/refresh (#37) is not mocked yet.
+ */
+
+interface MockUser {
+  id: number
+  username: string
+  email: string
+  role: string
+  display_name: string
+}
+
+interface MockAccount {
+  password: string
+  user: MockUser
+}
+
+export const MOCK_ACCOUNTS: MockAccount[] = [
+  {
+    password: "secret",
+    user: {
+      id: 1,
+      username: "intern",
+      email: "intern@example.com",
+      role: "intern",
+      display_name: "Аня",
+    },
+  },
+]
+
+/** Logging in with this username makes the backend fail, to see how the UI handles it. */
+export const FAILING_USERNAME = "down"
+
+const SESSION_COOKIE = "mock_session"
+const EXPIRED_SESSION_COOKIE = `${SESSION_COOKIE}=; Path=/; Max-Age=0`
+
+type Handler = (req: IncomingMessage, res: ServerResponse) => Promise<void>
+
+function send(res: ServerResponse, status: number, body?: unknown) {
+  if (body === undefined) {
+    res.writeHead(status).end()
+    return
+  }
+  res.writeHead(status, { "Content-Type": "application/json" }).end(JSON.stringify(body))
+}
+
+function readCookie(req: IncomingMessage, name: string) {
+  for (const cookie of req.headers.cookie?.split(";") ?? []) {
+    const [key, ...value] = cookie.trim().split("=")
+    if (key === name) return value.join("=")
+  }
+  return undefined
+}
+
+async function readJson(req: IncomingMessage): Promise<unknown> {
+  let raw = ""
+  for await (const chunk of req) raw += chunk
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return undefined
+  }
+}
+
+function isCredentials(body: unknown): body is { username: string; password: string } {
+  if (typeof body !== "object" || body === null) return false
+  const { username, password } = body as Record<string, unknown>
+  return (
+    typeof username === "string" &&
+    username !== "" &&
+    typeof password === "string" &&
+    password !== ""
+  )
+}
+
+/** Request handler for /api/* paths; anything it does not know gets a 404. */
+export function createMockApi({ latencyMs = 400 } = {}): Handler {
+  const sessions = new Map<string, MockAccount>()
+  const sessionToken = (req: IncomingMessage) => readCookie(req, SESSION_COOKIE) ?? ""
+
+  return async (req, res) => {
+    // a little latency, so loading states are visible
+    await new Promise((resolve) => setTimeout(resolve, latencyMs))
+    const path = new URL(req.url ?? "/", "http://mock").pathname
+
+    switch (`${req.method} ${path}`) {
+      case "POST /api/auth/login": {
+        const body = await readJson(req)
+        if (!isCredentials(body)) return send(res, 400, { error: "invalid request" })
+
+        const username = body.username.trim()
+        if (username === FAILING_USERNAME) return send(res, 500, { error: "internal error" })
+
+        const account = MOCK_ACCOUNTS.find(
+          (candidate) =>
+            candidate.user.username === username && candidate.password === body.password,
+        )
+        // as in the contract (#6, #36): a wrong password is a 400, a successful login is a 204
+        if (!account) return send(res, 400, { error: "invalid login credentials" })
+
+        const token = randomUUID()
+        sessions.set(token, account)
+        res.setHeader("Set-Cookie", `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax`)
+        return send(res, 204)
+      }
+
+      case "GET /api/user": {
+        const account = sessions.get(sessionToken(req))
+        return account ? send(res, 200, account.user) : send(res, 401, { error: "unauthorized" })
+      }
+
+      case "POST /api/auth/logout":
+        sessions.delete(sessionToken(req))
+        res.setHeader("Set-Cookie", EXPIRED_SESSION_COOKIE)
+        return send(res, 204)
+
+      default:
+        return send(res, 404, { error: `${req.method} ${path} is not in the mock API` })
+    }
+  }
+}
+
+/** Serves the mock API from the Vite dev server instead of proxying /api to the backend. */
+export function mockApiPlugin(): Plugin {
+  return {
+    name: "giga-buddy:mock-api",
+    apply: "serve",
+    configureServer(server) {
+      const handle = createMockApi()
+      server.middlewares.use((req, res, next) => {
+        if (!req.url?.startsWith("/api/")) return next()
+        handle(req, res).catch(next)
+      })
+
+      const [{ user, password }] = MOCK_ACCOUNTS
+      server.httpServer?.once("listening", () => {
+        server.config.logger.info(
+          `\n  Mock API: log in as ${user.username} / ${password}, ` +
+            `"${FAILING_USERNAME}" makes the backend fail\n`,
+        )
+      })
+    },
+  }
+}
