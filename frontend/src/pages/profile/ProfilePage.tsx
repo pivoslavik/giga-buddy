@@ -19,7 +19,11 @@ export function ProfilePage() {
 
   return (
     <div className={styles.page}>
-      <PageTitle title="Личный кабинет" subtitle="Твои данные аккаунта" />
+      <PageTitle
+        className={styles.heading}
+        title="Личный кабинет"
+        subtitle="Твои данные аккаунта"
+      />
 
       <div className={styles.content}>
         <section className={styles.card} aria-labelledby="account-title">
