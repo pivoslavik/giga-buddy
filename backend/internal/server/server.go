@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pivoslavik/giga-buddy/backend/internal/db"
 	"github.com/pivoslavik/giga-buddy/backend/internal/server/auth"
+	"github.com/pivoslavik/giga-buddy/backend/internal/server/document"
 	"github.com/pivoslavik/giga-buddy/backend/internal/server/health"
 	"github.com/pivoslavik/giga-buddy/backend/internal/server/middleware"
 	"github.com/pivoslavik/giga-buddy/backend/internal/server/user"
@@ -37,6 +38,8 @@ func Run(databaseURL string, jwtSecret []byte) error {
 	protectedAPI.Use(middleware.CheckAccessToken(jwtSecret))
 
 	protectedAPI.GET("/user", user.HandleUser(&database))
+
+	protectedAPI.GET("/documents", document.HandleDocumentsList(&database))
 
 	// background tasks
 	go database.RefreshSessions.PeriodicallyDeleteExpiredRefreshSessions()
