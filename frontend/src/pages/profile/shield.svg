@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <filter id="shadow" x="-20%" y="-15%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#48307b" flood-opacity=".14"/>
+    </filter>
+  </defs>
+  <g fill="none" stroke="#36d487" stroke-linecap="round" stroke-width="12">
+    <path d="m61 112 29 17M83 73l22 25m14-49 9 31"/>
+  </g>
+  <g filter="url(#shadow)">
+    <path fill="#a98ae7" d="M242 50a29 29 0 0 1 28 0c43 24 88 43 135 57a36 36 0 0 1 25 35v67c0 101-57 183-157 237a35 35 0 0 1-34 0C139 392 82 310 82 209v-67a36 36 0 0 1 25-35c47-14 92-33 135-57Z"/>
+    <path fill="#d4c0fa" d="M248 77a17 17 0 0 1 16 0c43 24 86 42 132 56a11 11 0 0 1 8 11v64c0 87-47 158-139 210a18 18 0 0 1-18 0c-92-52-139-123-139-210v-64a11 11 0 0 1 8-11c46-14 89-32 132-56Z"/>
+    <path fill="#e5d7fc" d="M256 106c40 21 79 38 120 51v51c0 75-39 135-120 183-81-48-120-108-120-183v-51c41-13 80-30 120-51Z"/>
+    <path fill="none" stroke="#06ba66" stroke-linecap="round" stroke-linejoin="round" stroke-width="34" d="m197 246 41 41 79-83"/>
+  </g>
+  <circle cx="410" cy="401" r="45" fill="#48c9f4"/>
+</svg>

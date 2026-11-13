@@ -2,7 +2,7 @@ import { getRouteApi } from "@tanstack/react-router"
 import { useLogout } from "../../features/auth/logout"
 import { Avatar } from "../../shared/ui/Avatar/Avatar"
 import { PageTitle } from "../../shared/ui/PageTitle/PageTitle"
-import shield from "./shield.webp"
+import shield from "./shield.svg"
 import styles from "./ProfilePage.module.css"
 
 const authenticatedRoute = getRouteApi("/authenticated")
@@ -65,7 +65,9 @@ export function ProfilePage() {
           )}
         </section>
 
-        <img className={styles.shield} src={shield} alt="" width={512} height={512} />
+        <div className={styles.shield}>
+          <img className={styles.shieldArt} src={shield} alt="" width={512} height={512} />
+        </div>
       </div>
     </div>
   )

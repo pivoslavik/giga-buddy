@@ -127,16 +127,24 @@
   color: var(--color-text-danger);
 }
 
-.shield {
+.shieldArt {
   width: 100%;
   height: auto;
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  .page {
+    --profile-enter-duration: 720ms;
+  }
+
   .heading,
   .card,
   .shield {
-    animation: profile-enter 720ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    animation: profile-enter var(--profile-enter-duration) cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .shieldArt {
+    animation: shield-float 4.5s ease-in-out var(--profile-enter-duration) infinite;
   }
 
   .actions button:enabled {
@@ -160,6 +168,17 @@
   to {
     opacity: 1;
     translate: 0 0;
+  }
+}
+
+@keyframes shield-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+
+  50% {
+    translate: 0 -6px;
   }
 }
 
