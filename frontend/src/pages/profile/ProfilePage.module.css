@@ -1,0 +1,137 @@
+.page {
+  display: grid;
+  gap: clamp(24px, 3vw, 36px);
+  padding-top: clamp(0px, 1.7vw, 24px);
+}
+
+.content {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
+  align-items: center;
+  gap: clamp(24px, 4vw, 56px);
+}
+
+.card {
+  display: grid;
+  gap: clamp(20px, 2.6vw, 30px);
+  min-width: 0;
+  padding: clamp(20px, 3vw, 36px);
+  border: 1px solid #ded2f8;
+  border-radius: var(--radius-l);
+  background: var(--color-surface);
+}
+
+.title {
+  font-size: clamp(24px, 3vw, 36px);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: clamp(14px, 2vw, 24px);
+  overflow-wrap: anywhere;
+}
+
+.identity > div {
+  min-width: 0;
+}
+
+.identity .avatar {
+  width: clamp(56px, 6vw, 80px);
+  height: clamp(56px, 6vw, 80px);
+  background: #d7bafa;
+  font-size: clamp(24px, 3vw, 34px);
+}
+
+.name {
+  font-size: clamp(21px, 2.4vw, 30px);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.badge {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 4px 16px;
+  border-radius: var(--radius-pill);
+  background: #e6d6fb;
+  color: #453b62;
+  font-weight: 750;
+}
+
+.fields {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+}
+
+.field {
+  min-width: 0;
+  padding: 12px clamp(14px, 2vw, 22px);
+  border-radius: var(--radius-m);
+  background: #f3eefb;
+}
+
+.field dt {
+  color: #453b62;
+  font-weight: 800;
+}
+
+.field dd {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+  font-size: clamp(17px, 2vw, 23px);
+  line-height: 1.35;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.actions button {
+  min-height: 48px;
+  padding: 8px 22px;
+  border: 1px solid #ded2f8;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  font-weight: 700;
+}
+
+.actions button:hover:enabled {
+  background: var(--color-soft-purple);
+}
+
+.actions button:disabled {
+  color: var(--color-text-secondary);
+  cursor: default;
+}
+
+.error {
+  color: var(--color-text-danger);
+}
+
+.shield {
+  width: 100%;
+  height: auto;
+}
+
+@media (max-width: 760px) {
+  .content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .shield {
+    display: none;
+  }
+}
+
+@media (max-width: 460px) {
+  .actions button {
+    width: 100%;
+  }
+}

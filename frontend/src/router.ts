@@ -10,7 +10,8 @@ import { sessionQueryOptions } from "./entities/session/session"
 import { AppLayout } from "./pages/app-layout/AppLayout"
 import { HomePage } from "./pages/home/HomePage"
 import { LandingPage } from "./pages/landing/LandingPage"
-import { ChatPage, KnowledgeBasePage, ProfilePage } from "./pages/placeholder/PlaceholderPages"
+import { ChatPage, KnowledgeBasePage } from "./pages/placeholder/PlaceholderPages"
+import { ProfilePage } from "./pages/profile/ProfilePage"
 
 export interface RouterContext {
   queryClient: QueryClient
