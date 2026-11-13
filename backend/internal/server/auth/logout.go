@@ -16,7 +16,7 @@ func (h *Handler) handleLogout(c *gin.Context) {
 	}
 
 	tokenHash := refresh.HashRefreshToken(refreshToken)
-	if h.database.RefreshSessions.DeleteRefreshSessionByTokenHash(ctx, tokenHash) != nil {
+	if err := h.database.RefreshSessions.DeleteRefreshSessionByTokenHash(ctx, tokenHash); err != nil {
 		c.Status(http.StatusUnauthorized)
 		return
 	}
