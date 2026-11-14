@@ -34,21 +34,17 @@ class Embeddings:
 
     @classmethod
     async def load(cls) -> "Embeddings":
-        workers = int(os.getenv("ML_INFERENCE_WORKERS", "1"))
         max_waiting = int(os.getenv("ML_INFERENCE_MAX_WAITING", "2"))
-        if workers < 1 or max_waiting < 0:
-            raise ValueError(
-                "ML_INFERENCE_WORKERS must be positive and ML_INFERENCE_MAX_WAITING nonnegative"
-            )
-        # Each worker has its own model and tokenizer state.
-        models = [await asyncio.to_thread(load_model) for _ in range(workers)]
-        return cls(models, max_waiting)
+        if max_waiting < 0:
+            raise ValueError("ML_INFERENCE_MAX_WAITING must be nonnegative")
+        model = await asyncio.to_thread(load_model)
+        return cls([model], max_waiting)
 
     async def close(self) -> None:
         self._closing = True
         await asyncio.to_thread(self._executor.shutdown, cancel_futures=True)
 
-    async def encode(self, chunks: list[str]) -> np.ndarray:
+    async def encode(self, chunks: list[str], *, prefix: str = "passage") -> np.ndarray:
         if self._closing or self._admitted >= self._capacity:
             raise InferenceUnavailable
 
@@ -59,7 +55,7 @@ class Embeddings:
             if self._closing:
                 raise InferenceUnavailable
             future = asyncio.get_running_loop().run_in_executor(
-                self._executor, self._encode, model, chunks
+                self._executor, self._encode, model, chunks, prefix
             )
             # An abandoned request still owns its worker until the thread finishes.
             return await asyncio.shield(future)
@@ -80,10 +76,10 @@ class Embeddings:
             future.exception()  # Consume a possible error after request cancellation.
 
     @staticmethod
-    def _encode(model, chunks: list[str]) -> np.ndarray:
+    def _encode(model, chunks: list[str], prefix: str) -> np.ndarray:
         try:
             vectors = model.encode(
-                [f"passage: {chunk}" for chunk in chunks], normalize_embeddings=True
+                [f"{prefix}: {chunk}" for chunk in chunks], normalize_embeddings=True
             )
             vectors = np.asarray(vectors, dtype=np.float32)
         except Exception as exc:
