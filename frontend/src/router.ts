@@ -8,9 +8,10 @@ import {
 } from "@tanstack/react-router"
 import { sessionQueryOptions } from "./entities/session/session"
 import { AppLayout } from "./pages/app-layout/AppLayout"
+import { ChatPage } from "./pages/chat/ChatPage"
 import { HomePage } from "./pages/home/HomePage"
 import { LandingPage } from "./pages/landing/LandingPage"
-import { ChatPage, ProfilePage } from "./pages/placeholder/PlaceholderPages"
+import { KnowledgeBasePage, ProfilePage } from "./pages/placeholder/PlaceholderPages"
 
 export interface RouterContext {
   queryClient: QueryClient
@@ -66,9 +67,15 @@ const chatRoute = createRoute({
   component: ChatPage,
 })
 
+const knowledgeBaseRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: "/knowledge-base",
+  component: KnowledgeBasePage,
+})
+
 const routeTree = rootRoute.addChildren([
   welcomeRoute,
-  authenticatedRoute.addChildren([homeRoute, profileRoute, chatRoute]),
+  authenticatedRoute.addChildren([homeRoute, profileRoute, chatRoute, knowledgeBaseRoute]),
 ])
 
 export function createAppRouter(queryClient: QueryClient, history?: RouterHistory) {

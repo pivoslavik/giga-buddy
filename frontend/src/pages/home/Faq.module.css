@@ -89,6 +89,33 @@
   overflow-x: auto;
 }
 
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  border-radius: 4px;
+  color: #6a3fd0;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.link svg {
+  width: 16px;
+  height: 16px;
+  transition: translate 0.15s ease;
+}
+
+@media (hover: hover) {
+  .link:hover {
+    text-decoration: underline;
+  }
+
+  .link:hover svg {
+    translate: 3px 0;
+  }
+}
+
 /* where the browser can animate to `height: auto`, answers slide open instead of popping in */
 @supports (interpolate-size: allow-keywords) {
   .item {

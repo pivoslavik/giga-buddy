@@ -8,6 +8,7 @@ import (
 	"github.com/pivoslavik/giga-buddy/backend/internal/server/auth"
 	"github.com/pivoslavik/giga-buddy/backend/internal/server/health"
 	"github.com/pivoslavik/giga-buddy/backend/internal/server/middleware"
+	"github.com/pivoslavik/giga-buddy/backend/internal/server/user"
 )
 
 func Run(databaseURL string, jwtSecret []byte) error {
@@ -25,7 +26,6 @@ func Run(databaseURL string, jwtSecret []byte) error {
 	}
 
 	// PUBLIC ROUTES
-
 	router.GET("/health", health.HandleHealth) // is used for docker healthcheck only; isn't part of the API
 
 	publicAPI := router.Group("/api")
@@ -33,11 +33,13 @@ func Run(databaseURL string, jwtSecret []byte) error {
 	authHandler.RegisterRoutes(publicAPI)
 
 	// PROTECTED ROUTES
-	privateAPI := router.Group("/api")
-	privateAPI.Use(middleware.CheckAccessToken(jwtSecret))
+	protectedAPI := router.Group("/api")
+	protectedAPI.Use(middleware.CheckAccessToken(jwtSecret))
 
+	protectedAPI.GET("/user", user.HandleUser(&database))
+
+	// background tasks
 	go database.RefreshSessions.PeriodicallyDeleteExpiredRefreshSessions()
-	// add goroutine to clean sessions
 
 	return router.Run(":8080")
 }

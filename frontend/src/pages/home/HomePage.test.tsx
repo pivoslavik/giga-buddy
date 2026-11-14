@@ -72,6 +72,17 @@ describe("HomePage", () => {
     expect(faq.getByText(/линтер и тесты проходят/)).toBeVisible()
   })
 
+  it("leads to the knowledge base from the answer about documentation", async () => {
+    const user = userEvent.setup()
+    const { router } = await renderHome()
+
+    await user.click(screen.getByText("Где найти документацию проекта?"))
+    await user.click(screen.getByRole("link", { name: "Открыть базу знаний" }))
+
+    expect(await screen.findByRole("heading", { level: 1, name: "База знаний" })).toBeVisible()
+    expect(router.state.location.pathname).toBe("/knowledge-base")
+  })
+
   it("leads to the chat for other questions", async () => {
     const user = userEvent.setup()
     const { router } = await renderHome()

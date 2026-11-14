@@ -9,8 +9,17 @@ npm ci
 npm run dev
 ```
 
-The dev server proxies `/api` to `API_PROXY_TARGET` (`http://localhost` by default, which is nginx
-from `docker compose up`). To work against a backend started locally, create `.env.local`:
+The frontend calls the API on its own origin, and every `/api/*` request is proxied to the backend
+with its method, path, query, headers, cookies and body:
+
+- `npm run dev` and `npm run preview` proxy it to `API_PROXY_TARGET` (`http://localhost`, port 80,
+  by default: nginx from `docker compose up`, which forwards to `backend:8080`). They add
+  `X-Forwarded-*` headers and drop the `Domain` of the cookies the backend sets, so the browser
+  keeps them for the dev host.
+- in docker compose and production, nginx ([nginx/default.conf](../nginx/default.conf)) proxies it
+  to `backend:8080` and passes the address of the browser in `X-Real-IP` and `X-Forwarded-For`.
+
+To work against a backend started locally, create `.env.local`:
 
 ```bash
 API_PROXY_TARGET=http://localhost:8080
@@ -31,7 +40,15 @@ docker compose:
 | `down`   | any      | the backend fails with `500`                   |
 | other    | any      | `400`, the form says the credentials are wrong |
 
-Sessions are kept in memory until the dev server restarts; log out from the avatar menu in the
+Like the backend, the mock sets an `access_token` cookie for 15 minutes and a `refresh_token`
+cookie for a week, and swaps the refresh token for a new pair on `POST /api/auth/refresh`. To see
+the refresh without waiting, shorten the access token in `.env.mock.local`:
+
+```bash
+MOCK_ACCESS_TOKEN_TTL_SECONDS=20
+```
+
+Tokens are kept in memory until the dev server restarts; log out from the avatar menu in the
 header. The mock is never part of the production build.
 
 ## Scripts
@@ -41,6 +58,7 @@ header. The mock is never part of the production build.
 | `npm run dev`      | dev server with HMR                           |
 | `npm run dev:mock` | dev server with the mock API instead of proxy |
 | `npm run build`    | type-check and production build into `dist/`  |
+| `npm run preview`  | serves `dist/` with the same `/api` proxy     |
 | `npm run lint`     | ESLint                                        |
 | `npm run format`   | Prettier                                      |
 | `npm test`         | unit tests (Vitest + Testing Library, jsdom)  |
@@ -69,11 +87,18 @@ The backend keeps the session in httpOnly cookies, so the frontend learns about 
 
 - `/welcome` — landing page for guests; users with a session are redirected to `/`.
 - every other page lives under the pathless `authenticated` route, which sends guests to `/welcome`
-  and renders the page under the app header (`/`, `/profile`, `/chat`).
+  and renders the page under the app header (`/`, `/profile`, `/chat`, `/knowledge-base`).
 
 The login modal on the landing page sends `{ "username", "password" }` to `POST /api/auth/login`.
 When the backend accepts them, the session is re-read and the user lands on `/`; `400`/`401` is
 shown as wrong credentials, anything else as "try again later".
+
+The access token lives 15 minutes and the refresh token a week. When a request gets `401`,
+`apiFetch` calls `POST /api/auth/refresh` and sends the request once more; requests that fail
+together share one refresh. If the refresh fails too, the `401` stands and the session is over, so
+a page load lands on `/welcome`. Login and refresh answers are never retried: there a `401` means
+wrong credentials or no session at all. Logout is, like any other request: after 15 idle minutes
+its access token may be stale while the session still lives.
 
 "Выйти из аккаунта" in the avatar menu of the header sends `POST /api/auth/logout`: only the
 backend can expire the httpOnly cookies. The session is re-read, and once it is gone the user lands
