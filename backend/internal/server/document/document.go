@@ -40,7 +40,7 @@ func HandleDocumentsList(db *db.Database) func(c *gin.Context) {
 			return
 		}
 
-		categories := make([]models.DocumentCategory, len(values))
+		categories := make([]string, len(values))
 
 		for i, category := range values {
 			if err := models.CheckDocumentCategory(category); err != nil {
@@ -49,7 +49,7 @@ func HandleDocumentsList(db *db.Database) func(c *gin.Context) {
 				})
 				return
 			}
-			categories[i] = models.DocumentCategory(category)
+			categories[i] = category
 		}
 
 		documents, err := db.Documents.GetShortDocumentsWithAmountByCategory(ctx, amount, categories)

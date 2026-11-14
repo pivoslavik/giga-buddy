@@ -19,13 +19,16 @@ func NewQueries(pool *pgxpool.Pool) Queries {
 	}
 }
 
-func (q *Queries) GetShortDocumentsWithAmountByCategory(ctx context.Context, amount int, categories []models.DocumentCategory) ([]models.ShortDocument, error) {
+func (q *Queries) GetShortDocumentsWithAmountByCategory(ctx context.Context, amount int, categories []string) ([]models.ShortDocument, error) {
 	documents := make([]models.ShortDocument, 0)
+
 	err := pgxscan.Select(ctx, q.pool, &documents,
 		`
 			SELECT id, title, description, category
 			FROM documents
-		WHERE category = ANY($1::document_category[])
+			WHERE category IN (
+				SELECT unnest($1::text[])::document_category
+			)
 			LIMIT $2
 		`,
 		categories, amount,
