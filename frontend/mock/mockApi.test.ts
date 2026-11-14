@@ -133,7 +133,10 @@ describe("mock API", () => {
     }
 
     const contacts = await list("amount=10&category=contacts")
-    expect(contacts).toEqual(MOCK_DOCUMENTS.filter(({ category }) => category === "contacts"))
+    expect(contacts.map(({ id }) => id)).toEqual(
+      MOCK_DOCUMENTS.filter(({ category }) => category === "contacts").map(({ id }) => id),
+    )
+    // a card goes without the text of its document
     expect(contacts[0]).toEqual({
       id: expect.any(Number),
       title: expect.any(String),
@@ -158,5 +161,37 @@ describe("mock API", () => {
     expect(await statusOf("amount=5")).toBe(400)
     expect(await statusOf("amount=5&category=company&category=memes")).toBe(400)
     expect(await statusOf("amount=0&category=company")).toBe(200)
+  })
+
+  it("gives the title, the category and the markdown of one document", async () => {
+    const { api } = await startMockApi()
+    const { access_token } = await logIn(api)
+
+    const response = await api("/api/documents/2", withCookie(access_token))
+
+    expect(response.status).toBe(200)
+    const [setup] = MOCK_DOCUMENTS.filter(({ id }) => id === 2)
+    expect(await response.json()).toEqual({
+      title: setup.title,
+      category: setup.category,
+      text: setup.text,
+    })
+  })
+
+  it("rejects a document without a session, with a wrong id or one that does not exist", async () => {
+    const { api } = await startMockApi()
+    const { access_token } = await logIn(api)
+    const statusOf = async (id: string, cookie = access_token) =>
+      (await api(`/api/documents/${id}`, withCookie(cookie))).status
+
+    expect(await statusOf("2", "access_token=stale")).toBe(401)
+    expect(await statusOf("two")).toBe(400)
+    expect(await statusOf("999")).toBe(404)
+  })
+
+  it("has a text and a unique id for every document", () => {
+    const ids = MOCK_DOCUMENTS.map(({ id }) => id)
+    expect(new Set(ids).size).toBe(ids.length)
+    for (const document of MOCK_DOCUMENTS) expect(document.text.trim()).not.toBe("")
   })
 })
