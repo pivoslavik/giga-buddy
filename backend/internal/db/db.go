@@ -3,7 +3,7 @@ package db
 import (
 	"fmt"
 
-	"github.com/pivoslavik/giga-buddy/backend/internal/db/documents"
+	documents "github.com/pivoslavik/giga-buddy/backend/internal/db/document"
 	refreshsessions "github.com/pivoslavik/giga-buddy/backend/internal/db/refresh_sessions"
 	"github.com/pivoslavik/giga-buddy/backend/internal/db/users"
 )
