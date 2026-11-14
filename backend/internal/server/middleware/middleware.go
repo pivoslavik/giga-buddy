@@ -25,7 +25,7 @@ func CheckAccessToken(jwtSecret []byte) func(g *gin.Context) {
 			return
 		}
 
-		c.Set("user_id", userID)
+		c.Set("userID", userID)
 		c.Next()
 	}
 }

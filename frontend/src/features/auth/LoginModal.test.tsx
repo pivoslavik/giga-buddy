@@ -56,7 +56,9 @@ describe("LoginModal", () => {
 
     await fillAndSubmit(user)
 
-    expect(await screen.findByRole("heading", { name: "Привет, Аня!" })).toBeInTheDocument()
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "С чего начнём?" }),
+    ).toBeInTheDocument()
     expect(router.state.location.pathname).toBe("/")
 
     const loginCall = fetchMock.mock.calls.find(([url]) => url === "/api/auth/login")
@@ -90,7 +92,9 @@ describe("LoginModal", () => {
 
     respond(status(200))
 
-    expect(await screen.findByRole("heading", { name: "Привет, Аня!" })).toBeInTheDocument()
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "С чего начнём?" }),
+    ).toBeInTheDocument()
   })
 
   it.each([401, 400])("reports wrong credentials when the backend answers %i", async (code) => {

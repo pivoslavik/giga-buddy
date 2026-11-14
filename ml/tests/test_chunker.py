@@ -1,6 +1,6 @@
 import pytest
 
-from ml.src.features.documents.chunker import Chunker
+from ml.src.documents.chunker import Chunker
 
 
 @pytest.mark.parametrize(

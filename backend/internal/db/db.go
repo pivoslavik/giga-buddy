@@ -3,13 +3,13 @@ package db
 import (
 	"fmt"
 
-	"github.com/pivoslavik/giga-buddy/backend/internal/db/refresh_sessions"
+	refreshsessions "github.com/pivoslavik/giga-buddy/backend/internal/db/refresh_sessions"
 	"github.com/pivoslavik/giga-buddy/backend/internal/db/users"
 )
 
-// database is a collection of quieries to different tables
+// database is a collection of queries to different tables
 type Database struct {
-	Users           users.Quieries
+	Users           users.Queries
 	RefreshSessions refreshsessions.Queries
 }
 

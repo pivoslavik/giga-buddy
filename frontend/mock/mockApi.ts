@@ -1,12 +1,12 @@
 import { randomUUID } from "node:crypto"
 import type { IncomingMessage, ServerResponse } from "node:http"
-import type { Plugin } from "vite"
+import { loadEnv, type Plugin } from "vite"
 
 /*
  * Fake backend for `npm run dev:mock`: answers the endpoints the frontend uses, so the login flow
  * can be clicked through without docker compose. It follows the backend contract:
- * POST /api/auth/login (#6, #36) and GET /api/user (#9). Sessions live in memory until a restart;
- * access tokens never expire here, so POST /api/auth/refresh (#37) is not mocked yet.
+ * POST /api/auth/login (#6, #36), GET /api/user (#9), POST /api/auth/refresh (#37) and
+ * POST /api/auth/logout. Tokens live in memory until a restart.
  */
 
 interface MockUser {
@@ -38,8 +38,16 @@ export const MOCK_ACCOUNTS: MockAccount[] = [
 /** Logging in with this username makes the backend fail, to see how the UI handles it. */
 export const FAILING_USERNAME = "down"
 
-const SESSION_COOKIE = "mock_session"
-const EXPIRED_SESSION_COOKIE = `${SESSION_COOKIE}=; Path=/; Max-Age=0`
+const ACCESS_COOKIE = "access_token"
+const REFRESH_COOKIE = "refresh_token"
+const ACCESS_TOKEN_TTL_MS = 15 * 60 * 1000
+const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
+/** Like the backend: the access token goes with every /api request, the refresh one to /api/auth. */
+function tokenCookie(name: string, token: string, path: string, ttlMs: number) {
+  const maxAge = Math.floor(ttlMs / 1000)
+  return `${name}=${token}; Path=${path}; Max-Age=${maxAge}; HttpOnly; SameSite=Lax`
+}
 
 type Handler = (req: IncomingMessage, res: ServerResponse) => Promise<void>
 
@@ -80,17 +88,42 @@ function isCredentials(body: unknown): body is { username: string; password: str
   )
 }
 
+interface MockApiOptions {
+  /** Delay of every answer, so loading states are visible. */
+  latencyMs?: number
+  /** How long an access token is accepted; the backend uses 15 minutes. */
+  accessTokenTtlMs?: number
+  /** The clock tokens expire by, replaceable in tests. */
+  now?: () => number
+}
+
 /** Request handler for /api/* paths; anything it does not know gets a 404. */
-export function createMockApi({ latencyMs = 400 } = {}): Handler {
-  const sessions = new Map<string, MockAccount>()
-  const sessionToken = (req: IncomingMessage) => readCookie(req, SESSION_COOKIE) ?? ""
-  const endSession = (req: IncomingMessage, res: ServerResponse) => {
-    sessions.delete(sessionToken(req))
-    res.setHeader("Set-Cookie", EXPIRED_SESSION_COOKIE)
+export function createMockApi({
+  latencyMs = 400,
+  accessTokenTtlMs = ACCESS_TOKEN_TTL_MS,
+  now = Date.now,
+}: MockApiOptions = {}): Handler {
+  const accessTokens = new Map<string, { account: MockAccount; expiresAt: number }>()
+  const refreshTokens = new Map<string, MockAccount>()
+
+  /** Sets a new pair of tokens, as the backend does on login and on refresh. */
+  function issueTokens(res: ServerResponse, account: MockAccount) {
+    const accessToken = randomUUID()
+    const refreshToken = randomUUID()
+    accessTokens.set(accessToken, { account, expiresAt: now() + accessTokenTtlMs })
+    refreshTokens.set(refreshToken, account)
+    res.setHeader("Set-Cookie", [
+      tokenCookie(ACCESS_COOKIE, accessToken, "/api", accessTokenTtlMs),
+      tokenCookie(REFRESH_COOKIE, refreshToken, "/api/auth", REFRESH_TOKEN_TTL_MS),
+    ])
+  }
+
+  function accountOf(req: IncomingMessage) {
+    const session = accessTokens.get(readCookie(req, ACCESS_COOKIE) ?? "")
+    return session && session.expiresAt > now() ? session.account : undefined
   }
 
   return async (req, res) => {
-    // a little latency, so loading states are visible
     await new Promise((resolve) => setTimeout(resolve, latencyMs))
     const path = new URL(req.url ?? "/", "http://mock").pathname
 
@@ -109,26 +142,34 @@ export function createMockApi({ latencyMs = 400 } = {}): Handler {
         // as in the contract (#6, #36): a wrong password is a 400, a successful login is a 204
         if (!account) return send(res, 400, { error: "invalid login credentials" })
 
-        const token = randomUUID()
-        sessions.set(token, account)
-        res.setHeader("Set-Cookie", `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax`)
+        issueTokens(res, account)
         return send(res, 204)
       }
 
       case "GET /api/user": {
-        const account = sessions.get(sessionToken(req))
+        const account = accountOf(req)
         return account ? send(res, 200, account.user) : send(res, 401, { error: "unauthorized" })
       }
 
-      case "POST /api/auth/logout":
-        endSession(req, res)
-        return send(res, 204)
+      // the refresh token is swapped for a new pair, so each one works only once
+      case "POST /api/auth/refresh": {
+        const refreshToken = readCookie(req, REFRESH_COOKIE) ?? ""
+        const account = refreshTokens.get(refreshToken)
+        if (!account) return send(res, 401, { error: "invalid refresh token" })
 
-      // there is no logout button yet: open this in the browser to become a guest again
-      case "GET /api/mock/logout":
-        endSession(req, res)
-        res.setHeader("Location", "/welcome")
-        return send(res, 302)
+        refreshTokens.delete(refreshToken)
+        issueTokens(res, account)
+        return send(res, 204)
+      }
+
+      case "POST /api/auth/logout":
+        accessTokens.delete(readCookie(req, ACCESS_COOKIE) ?? "")
+        refreshTokens.delete(readCookie(req, REFRESH_COOKIE) ?? "")
+        res.setHeader("Set-Cookie", [
+          tokenCookie(ACCESS_COOKIE, "", "/api", 0),
+          tokenCookie(REFRESH_COOKIE, "", "/api/auth", 0),
+        ])
+        return send(res, 204)
 
       default:
         return send(res, 404, { error: `${req.method} ${path} is not in the mock API` })
@@ -142,7 +183,13 @@ export function mockApiPlugin(): Plugin {
     name: "giga-buddy:mock-api",
     apply: "serve",
     configureServer(server) {
-      const handle = createMockApi()
+      // e.g. MOCK_ACCESS_TOKEN_TTL_SECONDS=20 in .env.mock.local, to see the refresh in action
+      const { config } = server
+      const env = loadEnv(config.mode, config.envDir || config.root, "MOCK_")
+      const ttlSeconds = Number(env.MOCK_ACCESS_TOKEN_TTL_SECONDS)
+      const accessTokenTtlMs = ttlSeconds > 0 ? ttlSeconds * 1000 : ACCESS_TOKEN_TTL_MS
+
+      const handle = createMockApi({ accessTokenTtlMs })
       server.middlewares.use((req, res, next) => {
         if (!req.url?.startsWith("/api/")) return next()
         handle(req, res).catch(next)
@@ -150,9 +197,10 @@ export function mockApiPlugin(): Plugin {
 
       const [{ user, password }] = MOCK_ACCOUNTS
       server.httpServer?.once("listening", () => {
-        server.config.logger.info(
+        config.logger.info(
           `\n  Mock API: log in as ${user.username} / ${password}, ` +
-            `"${FAILING_USERNAME}" makes the backend fail, /api/mock/logout logs out\n`,
+            `"${FAILING_USERNAME}" makes the backend fail, ` +
+            `access tokens live ${accessTokenTtlMs / 1000}s\n`,
         )
       })
     },

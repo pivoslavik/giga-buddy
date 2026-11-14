@@ -9,6 +9,7 @@
   color: var(--color-surface);
   font-weight: 700;
   line-height: 1.2;
+  text-decoration: none;
   transition:
     background-color 0.15s ease,
     transform 0.15s ease;

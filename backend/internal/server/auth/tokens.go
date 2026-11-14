@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -8,9 +10,6 @@ import (
 	"github.com/pivoslavik/giga-buddy/backend/internal/tokens/access"
 	"github.com/pivoslavik/giga-buddy/backend/internal/tokens/refresh"
 	"github.com/pivoslavik/giga-buddy/backend/internal/utils/models"
-	"net/http"
-
-	"fmt"
 )
 
 func setRefreshToken(c *gin.Context, database *db.Database, userID models.UserID) error {
@@ -62,4 +61,28 @@ func setAccessToken(c *gin.Context, userID models.UserID, jwtSecret []byte) erro
 		true,
 	)
 	return nil
+}
+
+func clearTokens(c *gin.Context) {
+	c.SetSameSite(http.SameSiteLaxMode)
+
+	c.SetCookie(
+		"access_token",
+		"",
+		-1,
+		"/api",
+		"",
+		cookieSecure,
+		true,
+	)
+
+	c.SetCookie(
+		"refresh_token",
+		"",
+		-1,
+		"/api/auth",
+		"",
+		cookieSecure,
+		true,
+	)
 }
