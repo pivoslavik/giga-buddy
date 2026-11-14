@@ -3,16 +3,16 @@ package db
 import (
 	"fmt"
 
+	"github.com/pivoslavik/giga-buddy/backend/internal/db/messages"
 	refreshsessions "github.com/pivoslavik/giga-buddy/backend/internal/db/refresh_sessions"
 	"github.com/pivoslavik/giga-buddy/backend/internal/db/users"
-	"github.com/pivoslavik/giga-buddy/backend/internal/db/messages"
 )
 
 // database is a collection of queries to different tables
 type Database struct {
 	Users           users.Queries
 	RefreshSessions refreshsessions.Queries
-	Messages messages.Queries
+	Messages        messages.Queries
 }
 
 func NewDatabaseConnection(databaseURL string) (Database, error) {

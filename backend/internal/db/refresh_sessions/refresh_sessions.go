@@ -10,7 +10,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pivoslavik/giga-buddy/backend/internal/utils/models/refreshsession"
 	usermodel "github.com/pivoslavik/giga-buddy/backend/internal/utils/models/user"
-
 )
 
 type Queries struct {
@@ -24,9 +23,9 @@ func NewQueries(pool *pgxpool.Pool) Queries {
 }
 
 func (q *Queries) CreateRefreshSession(
-	ctx context.Context, 
+	ctx context.Context,
 	session refreshsession.RefreshSession,
-	) (refreshsession.RefreshSessionID, time.Time, error) {
+) (refreshsession.RefreshSessionID, time.Time, error) {
 
 	var dbID refreshsession.RefreshSessionID
 	var createdAt time.Time

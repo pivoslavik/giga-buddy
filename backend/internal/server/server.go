@@ -4,12 +4,13 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
+	"github.com/pivoslavik/giga-buddy/backend/internal/config"
 	"github.com/pivoslavik/giga-buddy/backend/internal/db"
 	"github.com/pivoslavik/giga-buddy/backend/internal/server/auth"
+	"github.com/pivoslavik/giga-buddy/backend/internal/server/chat"
 	"github.com/pivoslavik/giga-buddy/backend/internal/server/health"
 	"github.com/pivoslavik/giga-buddy/backend/internal/server/middleware"
 	"github.com/pivoslavik/giga-buddy/backend/internal/server/user"
-	"github.com/pivoslavik/giga-buddy/backend/internal/config"
 )
 
 func Run(config config.ServerConfig) error {
@@ -38,6 +39,7 @@ func Run(config config.ServerConfig) error {
 	protectedAPI.Use(middleware.CheckAccessToken(config.JWTSecret))
 
 	protectedAPI.GET("/user", user.HandleUser(&database))
+	chatHandler := chat.NewHandler(&database, config.MessagesPerUser, config.MLURL)
 
 	// background tasks
 	go database.RefreshSessions.PeriodicallyDeleteExpiredRefreshSessions()

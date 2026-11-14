@@ -11,10 +11,10 @@ import (
 func HandleUser(database *db.Database) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
-		userID,err := server.GetUserIDFromContext(c)
+		userID, err := server.GetUserIDFromContext(c)
 		if err != nil {
 			c.Status(http.StatusInternalServerError)
-			log.Printf("HandleUser: %v",err)
+			log.Printf("HandleUser: %v", err)
 			return
 		}
 

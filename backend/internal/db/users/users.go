@@ -13,5 +13,3 @@ func NewQueries(pool *pgxpool.Pool) Queries {
 		pool: pool,
 	}
 }
-
-

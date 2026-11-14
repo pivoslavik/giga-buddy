@@ -38,4 +38,3 @@ func (q *Queries) GetUserByUserID(ctx context.Context, userID usermodel.UserID) 
 	}
 	return user, nil
 }
-

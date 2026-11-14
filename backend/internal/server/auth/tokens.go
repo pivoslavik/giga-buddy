@@ -9,9 +9,8 @@ import (
 	"github.com/pivoslavik/giga-buddy/backend/internal/db"
 	"github.com/pivoslavik/giga-buddy/backend/internal/tokens/access"
 	"github.com/pivoslavik/giga-buddy/backend/internal/tokens/refresh"
-	"github.com/pivoslavik/giga-buddy/backend/internal/utils/models/user"
 	"github.com/pivoslavik/giga-buddy/backend/internal/utils/models/refreshsession"
-
+	"github.com/pivoslavik/giga-buddy/backend/internal/utils/models/user"
 )
 
 func setRefreshToken(c *gin.Context, database *db.Database, userID user.UserID) error {
