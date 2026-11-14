@@ -51,7 +51,8 @@ class OnnxModel:
                 ),
             }
             (hidden_states,) = self._session.run(
-                ["last_hidden_state"], {name: inputs[name] for name in self._input_names}
+                ["last_hidden_state"],
+                {name: inputs[name] for name in self._input_names},
             )
             pooled = (hidden_states * mask[..., None].astype(np.float32)).sum(axis=1)
             pooled /= mask.sum(axis=1, keepdims=True)
