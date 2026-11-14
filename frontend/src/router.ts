@@ -11,7 +11,8 @@ import { AppLayout } from "./pages/app-layout/AppLayout"
 import { ChatPage } from "./pages/chat/ChatPage"
 import { HomePage } from "./pages/home/HomePage"
 import { LandingPage } from "./pages/landing/LandingPage"
-import { KnowledgeBasePage, ProfilePage } from "./pages/placeholder/PlaceholderPages"
+import { KnowledgeBasePage } from "./pages/placeholder/PlaceholderPages"
+import { ProfilePage } from "./pages/profile/ProfilePage"
 
 export interface RouterContext {
   queryClient: QueryClient
