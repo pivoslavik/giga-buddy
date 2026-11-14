@@ -10,7 +10,11 @@ export interface ChatMessage {
 
 export interface ChatTransport {
   load: (signal: AbortSignal) => Promise<ChatMessage[]>
-  send: (message: string, signal: AbortSignal, onDelta: (delta: string) => void) => Promise<void>
+  send: (
+    message: string,
+    signal: AbortSignal,
+    onDelta: (delta: string) => void,
+  ) => Promise<string | void>
 }
 
 const chatPath = "/api/chat"
@@ -22,7 +26,7 @@ export const chatTransport: ChatTransport = {
     return history.messages
   },
 
-  async send(message, signal) {
+  async send(message, signal, onDelta) {
     const baseUrl = import.meta.env.VITE_API_URL ?? ""
     const response = await fetch(`${baseUrl}${chatPath}`, {
       method: "POST",
@@ -41,8 +45,23 @@ export const chatTransport: ChatTransport = {
       throw new Error("Expected a chat event stream")
     }
 
-    // The public API has yet to define the event names and payloads (issue #15).
-    // Until there is a decoder for onDelta, the caller reloads history when the stream closes.
-    await readEventStream(response.body)
+    let finalResponse: string | undefined
+    await readEventStream(response.body, ({ type, data }) => {
+      switch (type) {
+        case "token": {
+          const { delta } = JSON.parse(data)
+          if (typeof delta === "string") onDelta(delta)
+          break
+        }
+        case "done": {
+          const { response } = JSON.parse(data)
+          if (typeof response === "string") finalResponse = response
+          break
+        }
+        case "error":
+          throw new Error("Chat event stream reported an error")
+      }
+    })
+    return finalResponse
   },
 }
