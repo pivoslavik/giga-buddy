@@ -209,3 +209,45 @@ export function SparkleIcon(props: IconProps) {
     </BaseIcon>
   )
 }
+
+export function ChevronRightIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="m9 6 6 6-6 6" />
+    </BaseIcon>
+  )
+}
+
+export function ExternalLinkIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M11 4.5H6.5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V13M14.5 3.5h6v6M20.5 3.5 11 13" />
+    </BaseIcon>
+  )
+}
+
+export function CopyIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <rect x="8.5" y="8.5" width="12" height="12" rx="2.5" />
+      <path d="M15.5 8.5V6a2.5 2.5 0 0 0-2.5-2.5H6A2.5 2.5 0 0 0 3.5 6v7A2.5 2.5 0 0 0 6 15.5h2.5" />
+    </BaseIcon>
+  )
+}
+
+export function CheckIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="m4.5 12.5 5 5 10-11" />
+    </BaseIcon>
+  )
+}
+
+export function InfoIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5.5M12 7.5h.01" />
+    </BaseIcon>
+  )
+}
