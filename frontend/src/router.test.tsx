@@ -47,4 +47,29 @@ describe("session-based routing", () => {
     // both guards read the session from the query cache instead of refetching it
     expect(fetchMock).toHaveBeenCalledOnce()
   })
+
+  it("keeps users whose access token expired in the app by refreshing it", async () => {
+    let accessTokenIsValid = false
+    mockApi({
+      "GET /api/user": () => (accessTokenIsValid ? json(intern) : status(401)),
+      "POST /api/auth/refresh": () => {
+        accessTokenIsValid = true
+        return status(204)
+      },
+    })
+    const { router } = renderApp("/")
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "С чего начнём?" }),
+    ).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe("/")
+  })
+
+  it("sends users whose refresh token expired too to the landing page", async () => {
+    mockApi({ "GET /api/user": () => status(401), "POST /api/auth/refresh": () => status(401) })
+    const { router } = renderApp("/")
+
+    expect(await screen.findByRole("heading", landingHeading)).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe("/welcome")
+  })
 })
