@@ -8,9 +8,10 @@ import {
 } from "@tanstack/react-router"
 import { sessionQueryOptions } from "./entities/session/session"
 import { AppLayout } from "./pages/app-layout/AppLayout"
+import { ChatPage } from "./pages/chat/ChatPage"
 import { HomePage } from "./pages/home/HomePage"
 import { LandingPage } from "./pages/landing/LandingPage"
-import { ChatPage, KnowledgeBasePage, ProfilePage } from "./pages/placeholder/PlaceholderPages"
+import { KnowledgeBasePage, ProfilePage } from "./pages/placeholder/PlaceholderPages"
 
 export interface RouterContext {
   queryClient: QueryClient

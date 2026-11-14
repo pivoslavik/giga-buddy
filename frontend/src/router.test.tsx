@@ -1,10 +1,13 @@
-import { screen } from "@testing-library/react"
+import { screen, within } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 import type { User } from "./entities/session/session"
 import { intern, json, mockApi, renderApp, status } from "./test/app"
 
 function renderWithSession(path: string, session: User | null) {
-  const fetchMock = mockApi({ "GET /api/user": () => (session ? json(session) : status(401)) })
+  const fetchMock = mockApi({
+    "GET /api/user": () => (session ? json(session) : status(401)),
+    "GET /api/chat": () => json({ messages: [] }),
+  })
   return { ...renderApp(path), fetchMock }
 }
 
@@ -21,10 +24,11 @@ describe("session-based routing", () => {
   it.each(["/", "/profile", "/chat", "/knowledge-base"])(
     "sends guests from %s, which needs a session, to the landing page",
     async (path) => {
-      const { router } = renderWithSession(path, null)
+      const { router, fetchMock } = renderWithSession(path, null)
 
       expect(await screen.findByRole("heading", landingHeading)).toBeInTheDocument()
       expect(router.state.location.pathname).toBe("/welcome")
+      expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(["/api/user"])
     },
   )
 
@@ -35,6 +39,40 @@ describe("session-based routing", () => {
       await screen.findByRole("heading", { level: 1, name: "С чего начнём?" }),
     ).toBeInTheDocument()
     expect(router.state.location.pathname).toBe("/")
+  })
+
+  it("shows the chat under the shared layout and loads the signed-in user's history", async () => {
+    const { router, fetchMock } = renderWithSession("/chat", intern)
+
+    const heading = await screen.findByRole("heading", { level: 1, name: "Чат с AI Buddy" })
+    expect(screen.getByRole("main")).toContainElement(heading)
+
+    const navigation = screen.getByRole("navigation")
+    expect(navigation).toHaveAccessibleName("Разделы")
+    expect(within(navigation).getByRole("link", { name: "Чат" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    )
+    expect(screen.getByRole("button", { name: "Аккаунт: Аня" })).toBeInTheDocument()
+
+    const panel = screen.getByRole("region", { name: "Чат с AI Buddy" })
+    expect(panel).toHaveTextContent("AI Buddy")
+    expect(
+      await within(panel).findByRole("heading", { name: "Напиши первое сообщение" }),
+    ).toBeInTheDocument()
+    expect(
+      within(panel).getByText("Задай вопрос, попроси помочь с задачей или узнай что-то о проекте"),
+    ).toBeInTheDocument()
+    expect(within(panel).queryByRole("article")).not.toBeInTheDocument()
+    expect(within(panel).queryByRole("alert")).not.toBeInTheDocument()
+    expect(router.state.location.pathname).toBe("/chat")
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(["/api/user", "/api/chat"])
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/chat",
+      expect.objectContaining({
+        credentials: "include",
+      }),
+    )
   })
 
   it("sends users with a session from the landing page to the app", async () => {
