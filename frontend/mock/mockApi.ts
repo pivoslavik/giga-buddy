@@ -1,12 +1,13 @@
 import { randomUUID } from "node:crypto"
 import type { IncomingMessage, ServerResponse } from "node:http"
 import { loadEnv, type Plugin } from "vite"
+import { MOCK_DOCUMENT_CATEGORIES, MOCK_DOCUMENTS } from "./mockDocuments.ts"
 
 /*
  * Fake backend for `npm run dev:mock`: answers the endpoints the frontend uses, so the login flow
  * can be clicked through without docker compose. It follows the backend contract:
- * POST /api/auth/login (#6, #36), GET /api/user (#9), POST /api/auth/refresh (#37) and
- * POST /api/auth/logout. Tokens live in memory until a restart.
+ * POST /api/auth/login (#6, #36), GET /api/user (#9), POST /api/auth/refresh (#37),
+ * POST /api/auth/logout and GET /api/documents (#13). Tokens live in memory until a restart.
  */
 
 interface MockUser {
@@ -125,7 +126,8 @@ export function createMockApi({
 
   return async (req, res) => {
     await new Promise((resolve) => setTimeout(resolve, latencyMs))
-    const path = new URL(req.url ?? "/", "http://mock").pathname
+    const url = new URL(req.url ?? "/", "http://mock")
+    const path = url.pathname
 
     switch (`${req.method} ${path}`) {
       case "POST /api/auth/login": {
@@ -170,6 +172,31 @@ export function createMockApi({
           tokenCookie(REFRESH_COOKIE, "", "/api/auth", 0),
         ])
         return send(res, 204)
+
+      // like the backend (#13, PR #52): `amount` and at least one known `category` are required
+      case "GET /api/documents": {
+        if (!accountOf(req)) return send(res, 401, { error: "unauthorized" })
+
+        const amount = url.searchParams.get("amount")
+        if (amount === null) return send(res, 400, { error: "amount query parameter is required" })
+        if (!/^\d+$/.test(amount)) {
+          return send(res, 400, {
+            error: "amount query parameter must be a positive integer value",
+          })
+        }
+
+        const categories = url.searchParams.getAll("category")
+        if (categories.length === 0) {
+          return send(res, 400, { error: "categories query parameter is required" })
+        }
+        const unknown = categories.find((category) => !MOCK_DOCUMENT_CATEGORIES.includes(category))
+        if (unknown) return send(res, 400, { error: `invalid category: ${unknown}` })
+
+        const documents = MOCK_DOCUMENTS.filter((document) =>
+          categories.includes(document.category),
+        )
+        return send(res, 200, documents.slice(0, Number(amount)))
+      }
 
       default:
         return send(res, 404, { error: `${req.method} ${path} is not in the mock API` })

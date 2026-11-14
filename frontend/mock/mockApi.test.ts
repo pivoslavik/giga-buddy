@@ -2,6 +2,7 @@ import { createServer, type Server } from "node:http"
 import type { AddressInfo } from "node:net"
 import { afterEach, describe, expect, it } from "vitest"
 import { createMockApi } from "./mockApi.ts"
+import { MOCK_DOCUMENTS } from "./mockDocuments.ts"
 
 let server: Server | undefined
 
@@ -83,7 +84,7 @@ describe("mock API", () => {
     expect(await statusOf("/api/auth/login", { method: "POST", body: "not json" })).toBe(400)
     expect(await loginStatus({ username: "down", password: "x" })).toBe(500)
     expect(await statusOf("/api/auth/refresh", { method: "POST" })).toBe(401)
-    expect(await statusOf("/api/documents")).toBe(404)
+    expect(await statusOf("/api/unknown")).toBe(404)
   })
 
   it("trades the refresh token for a new pair once the access token expires", async () => {
@@ -120,5 +121,42 @@ describe("mock API", () => {
     expect((await api("/api/user", withCookie(cookies.access_token))).status).toBe(401)
     const refresh = withCookie(cookies.refresh_token, { method: "POST" })
     expect((await api("/api/auth/refresh", refresh)).status).toBe(401)
+  })
+
+  it("lists as many documents of the asked categories as the amount allows", async () => {
+    const { api } = await startMockApi()
+    const { access_token } = await logIn(api)
+    const list = async (query: string) => {
+      const response = await api(`/api/documents?${query}`, withCookie(access_token))
+      expect(response.status).toBe(200)
+      return (await response.json()) as typeof MOCK_DOCUMENTS
+    }
+
+    const contacts = await list("amount=10&category=contacts")
+    expect(contacts).toEqual(MOCK_DOCUMENTS.filter(({ category }) => category === "contacts"))
+    expect(contacts[0]).toEqual({
+      id: expect.any(Number),
+      title: expect.any(String),
+      description: expect.any(String),
+      category: "contacts",
+    })
+
+    const firstTwo = await list("amount=2&category=development&category=contacts")
+    expect(firstTwo.map(({ category }) => category)).toEqual(["development", "development"])
+  })
+
+  it("rejects document lists without a session, an amount or a known category", async () => {
+    const { api } = await startMockApi()
+    const { access_token } = await logIn(api)
+    const statusOf = async (query: string, cookie = access_token) =>
+      (await api(`/api/documents?${query}`, withCookie(cookie))).status
+
+    expect(await statusOf("amount=5&category=company", "access_token=stale")).toBe(401)
+    expect(await statusOf("category=company")).toBe(400)
+    expect(await statusOf("amount=-1&category=company")).toBe(400)
+    expect(await statusOf("amount=five&category=company")).toBe(400)
+    expect(await statusOf("amount=5")).toBe(400)
+    expect(await statusOf("amount=5&category=company&category=memes")).toBe(400)
+    expect(await statusOf("amount=0&category=company")).toBe(200)
   })
 })
