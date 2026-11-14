@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router"
 import type { ComponentType, SVGProps } from "react"
 import {
-  DOCUMENT_CATEGORY_LABELS,
+  documentCategoryLabel,
   isDocumentCategory,
   type DocumentCategory,
   type DocumentSummary,
@@ -36,16 +36,11 @@ const CATEGORY_LOOKS: Record<DocumentCategory, CategoryLook> = {
 }
 
 /** A category the backend added before the frontend learned about it. */
-const OTHER: CategoryLook & { label: string } = {
-  icon: DocumentIcon,
-  tone: "slate",
-  label: "Другое",
-}
+const OTHER: CategoryLook = { icon: DocumentIcon, tone: "slate" }
 
 function lookOf(category: string) {
-  return isDocumentCategory(category)
-    ? { ...CATEGORY_LOOKS[category], label: DOCUMENT_CATEGORY_LABELS[category] }
-    : OTHER
+  const look = isDocumentCategory(category) ? CATEGORY_LOOKS[category] : OTHER
+  return { ...look, label: documentCategoryLabel(category) }
 }
 
 interface DocumentCardProps {
