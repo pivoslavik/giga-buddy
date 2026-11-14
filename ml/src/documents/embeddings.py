@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 
-from ...e5_model import OnnxModel, download_model
+from ..e5_model import OnnxModel, download_model
 
 DIMENSION = 384
 
