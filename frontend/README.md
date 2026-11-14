@@ -9,8 +9,17 @@ npm ci
 npm run dev
 ```
 
-The dev server proxies `/api` to `API_PROXY_TARGET` (`http://localhost` by default, which is nginx
-from `docker compose up`). To work against a backend started locally, create `.env.local`:
+The frontend calls the API on its own origin, and every `/api/*` request is proxied to the backend
+with its method, path, query, headers, cookies and body:
+
+- `npm run dev` and `npm run preview` proxy it to `API_PROXY_TARGET` (`http://localhost`, port 80,
+  by default: nginx from `docker compose up`, which forwards to `backend:8080`). They add
+  `X-Forwarded-*` headers and drop the `Domain` of the cookies the backend sets, so the browser
+  keeps them for the dev host.
+- in docker compose and production, nginx ([nginx/default.conf](../nginx/default.conf)) proxies it
+  to `backend:8080` and passes the address of the browser in `X-Real-IP` and `X-Forwarded-For`.
+
+To work against a backend started locally, create `.env.local`:
 
 ```bash
 API_PROXY_TARGET=http://localhost:8080
@@ -49,6 +58,7 @@ header. The mock is never part of the production build.
 | `npm run dev`      | dev server with HMR                           |
 | `npm run dev:mock` | dev server with the mock API instead of proxy |
 | `npm run build`    | type-check and production build into `dist/`  |
+| `npm run preview`  | serves `dist/` with the same `/api` proxy     |
 | `npm run lint`     | ESLint                                        |
 | `npm run format`   | Prettier                                      |
 | `npm test`         | unit tests (Vitest + Testing Library, jsdom)  |
