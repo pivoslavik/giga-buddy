@@ -6,6 +6,7 @@ import { intern, json, mockApi, renderApp, status } from "./test/app"
 function renderWithSession(path: string, session: User | null) {
   const fetchMock = mockApi({
     "GET /api/user": () => (session ? json(session) : status(401)),
+    // a guest has no refresh token either
     "POST /api/auth/refresh": () => status(401),
     "GET /api/chat": () => json({ messages: [] }),
   })
@@ -29,10 +30,9 @@ describe("session-based routing", () => {
 
       expect(await screen.findByRole("heading", landingHeading)).toBeInTheDocument()
       expect(router.state.location.pathname).toBe("/welcome")
-      expect(fetchMock.mock.calls.map(([url, init]) => [init?.method ?? "GET", url])).toEqual([
-        ["GET", "/api/user"],
-        ["POST", "/api/auth/refresh"],
-      ])
+      // the 401 of the session check gets one refresh attempt (#37), and nothing of the page itself,
+      // such as the chat history, is loaded for a guest
+      expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(["/api/user", "/api/auth/refresh"])
     },
   )
 
