@@ -8,6 +8,7 @@ import (
 	"github.com/pivoslavik/giga-buddy/backend/internal/db"
 	"github.com/pivoslavik/giga-buddy/backend/internal/server/auth"
 	"github.com/pivoslavik/giga-buddy/backend/internal/server/chat"
+	"github.com/pivoslavik/giga-buddy/backend/internal/server/document"
 	"github.com/pivoslavik/giga-buddy/backend/internal/server/health"
 	"github.com/pivoslavik/giga-buddy/backend/internal/server/middleware"
 	"github.com/pivoslavik/giga-buddy/backend/internal/server/user"
@@ -39,6 +40,8 @@ func Run(config config.ServerConfig) error {
 	protectedAPI.Use(middleware.CheckAccessToken(config.JWTSecret))
 
 	protectedAPI.GET("/user", user.HandleUser(&database))
+
+	publicAPI.GET("/documents", document.HandleDocumentsList(&database))
 
 	chatHandler := chat.NewHandler(&database, config.MessagesPerUser, config.MLURL)
 	chatHandler.RegisterRoutes(protectedAPI)
