@@ -12,7 +12,7 @@ from .embeddings import EmbeddingError, InferenceUnavailable
 from .schemas import IndexDocumentRequest, IndexDocumentResult, DocumentStatus
 
 logger = logging.getLogger(__name__)
-router = APIRouter()
+router = APIRouter(tags=["documents"])
 
 
 @router.post("/documents", response_model=IndexDocumentResult)

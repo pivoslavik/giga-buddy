@@ -1,11 +1,17 @@
 package server
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
-	"github.com/pivoslavik/giga-buddy/internal/server/health"
+	"github.com/pivoslavik/giga-buddy/backend/internal/db"
+	"github.com/pivoslavik/giga-buddy/backend/internal/server/auth"
+	"github.com/pivoslavik/giga-buddy/backend/internal/server/health"
+	"github.com/pivoslavik/giga-buddy/backend/internal/server/middleware"
+	"github.com/pivoslavik/giga-buddy/backend/internal/server/user"
 )
 
-func Run() error {
+func Run(databaseURL string, jwtSecret []byte) error {
 	// setting up router
 	router := gin.New()
 	router.Use(gin.LoggerWithConfig(gin.LoggerConfig{
@@ -13,8 +19,27 @@ func Run() error {
 	}))
 	router.Use(gin.Recovery())
 
-	// public routes
-	router.GET("/health", health.HandleHealth)
+	// setting up database
+	database, err := db.NewDatabaseConnection(databaseURL)
+	if err != nil {
+		return fmt.Errorf("Run: %w", err)
+	}
+
+	// PUBLIC ROUTES
+	router.GET("/health", health.HandleHealth) // is used for docker healthcheck only; isn't part of the API
+
+	publicAPI := router.Group("/api")
+	authHandler := auth.NewHandler(&database, jwtSecret)
+	authHandler.RegisterRoutes(publicAPI)
+
+	// PROTECTED ROUTES
+	protectedAPI := router.Group("/api")
+	protectedAPI.Use(middleware.CheckAccessToken(jwtSecret))
+
+	protectedAPI.GET("/user", user.HandleUser(&database))
+
+	// background tasks
+	go database.RefreshSessions.PeriodicallyDeleteExpiredRefreshSessions()
 
 	return router.Run(":8080")
 }

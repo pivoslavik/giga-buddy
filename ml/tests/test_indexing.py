@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from ml.src import main
-from ml.src.features.documents import embeddings
+from ml.src.documents import embeddings
 
 
 @pytest.fixture
@@ -23,8 +23,12 @@ def indexing(monkeypatch):
     loader = Mock(return_value=model)
 
     monkeypatch.setenv("DATABASE_URL", "test-dsn")
-    monkeypatch.setenv("ML_INFERENCE_WORKERS", "1")
     monkeypatch.setenv("ML_INFERENCE_MAX_WAITING", "2")
+    monkeypatch.setenv("OPENAI_BASE_URL", "https://example.test")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("OPENAI_CHAT_MODEL", "test-model")
+    model_api = Mock(generate_reply=AsyncMock(return_value="Answer"))
+    monkeypatch.setattr(main, "ModelAPIManager", Mock(return_value=model_api))
     create_pool = Mock(return_value=pool)
     monkeypatch.setattr(main.asyncpg, "create_pool", create_pool)
     monkeypatch.setattr(embeddings, "load_model", loader)
@@ -32,7 +36,12 @@ def indexing(monkeypatch):
         yield client, connection, model, loader
 
     create_pool.assert_called_once_with(
-        "test-dsn", min_size=1, max_size=4, timeout=10, init=main.register_vector
+        "test-dsn",
+        min_size=1,
+        max_size=4,
+        timeout=10,
+        command_timeout=30,
+        init=main.register_vector,
     )
     pool.__aenter__.assert_awaited_once()
     pool.__aexit__.assert_awaited_once()
@@ -199,3 +208,57 @@ def test_inference_overload_returns_503(indexing, monkeypatch):
     assert response.status_code == 503
     assert response.json() == {"detail": "Embedding inference is busy"}
     connection.transaction.assert_not_called()
+
+
+@pytest.mark.parametrize("stream", [False, True])
+def test_chat_uses_requested_message_and_shared_model(indexing, stream):
+    client, _, model, loader = indexing
+    app = client.app
+    service = app.state.chat_service
+    pool = service.store.pool
+    pool.fetch = AsyncMock(
+        side_effect=[
+            [],
+            [
+                {"role": "user", "text": "Earlier message"},
+                {"role": "assistant", "text": "Previous answer"},
+                {"role": "user", "text": "First question"},
+            ],
+            [{"id": 7, "content": "Relevant document"}],
+        ]
+    )
+
+    async def stream_answer(messages):
+        yield "Answer"
+
+    service.model_api.stream = Mock(side_effect=stream_answer)
+    payload = {"user_id": 3, "message_id": 12, "stream": stream}
+    assert client.post("/analyze", json=payload).status_code == 404
+    model.encode.assert_not_called()
+    assert client.post("/documents", json={"document_id": 42}).status_code == 200
+    response = client.post("/analyze", json=payload)
+    if stream:
+        assert response.headers["content-type"].startswith("text/event-stream")
+        assert 'event: token\ndata: {"delta": "Answer"}' in response.text
+        assert 'event: done\ndata: {"response": "Answer"}' in response.text
+        messages = service.model_api.stream.call_args.args[0]
+    else:
+        assert response.json() == {"response": "Answer"}
+        messages = service.model_api.generate_reply.await_args.args[0]
+
+    for call in pool.fetch.await_args_list[:2]:
+        sql, user_id, message_id = call.args
+        assert "user_id = $1 AND id = $2" in sql
+        assert "id <= $2" in sql
+        assert "LIMIT 20" in sql
+        assert (user_id, message_id) == (3, 12)
+    loader.assert_called_once()
+    assert model.encode.call_args_list[0].args == (["passage: Existing text."],)
+    assert model.encode.call_args_list[1].args == (["query: Earlier message"],)
+    assert messages[1:3] == [
+        {"role": "user", "content": "First question"},
+        {"role": "assistant", "content": "Previous answer"},
+    ]
+    assert messages[-1]["role"] == "user"
+    assert "[7] Relevant document" in messages[-1]["content"]
+    assert messages[-1]["content"].endswith("Earlier message")

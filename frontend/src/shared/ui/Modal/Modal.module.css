@@ -1,6 +1,7 @@
 .dialog {
-  width: min(440px, calc(100vw - 32px));
-  max-height: calc(100dvh - 32px);
+  /* the app is zoomed on big monitors, see index.css */
+  width: min(440px, calc(100vw / var(--ui-zoom) - 32px));
+  max-height: calc(100dvh / var(--ui-zoom) - 32px);
   padding: 0;
   border: 0;
   border-radius: var(--radius-l);

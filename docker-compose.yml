@@ -3,6 +3,9 @@ services:
     build: ./backend
     environment:
       DATABASE_URL: postgres://${DB_USER}:${DB_USER_PASSWORD}@postgres:5432/${DB_NAME}
+      JWT_SECRET: ${JWT_SECRET:?jwt secret is not set}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN-}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
     depends_on:
       postgres:
         condition: service_healthy
@@ -14,16 +17,32 @@ services:
       timeout: 3s
       retries: 5
       start_period: 10s
+    networks:
+      - backend-nginx
+      - backend-ml
+      - backend-postgres
 
   ml:
     build: ./ml
     environment:
       DATABASE_URL: postgres://${DB_USER}:${DB_USER_PASSWORD}@postgres:5432/${DB_NAME}
-      ML_INFERENCE_WORKERS: "${ML_INFERENCE_WORKERS:-1}"
       ML_INFERENCE_MAX_WAITING: "${ML_INFERENCE_MAX_WAITING:-2}"
+      OPENAI_BASE_URL: "${OPENAI_BASE_URL:-}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+      OPENAI_CHAT_MODEL: "${OPENAI_CHAT_MODEL:-}"
     depends_on:
       migrator:
         condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 120s
+    networks:
+      - backend-ml
+      - ml-integration
+      - ml-postgres
 
   postgres:
     image: pgvector/pgvector:0.8.2-pg17
@@ -38,6 +57,11 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      - backend-postgres
+      - ml-postgres
+      - postgres-migrator
+      - integration-postgres
 
   migrator:
     image: migrate/migrate:v4.18.3
@@ -51,6 +75,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - postgres-migrator
 
   nginx:
     image: nginx:1.30.6-alpine
@@ -64,6 +90,8 @@ services:
         condition: service_completed_successfully
       backend:
         condition: service_healthy
+    networks:
+      - backend-nginx
 
   frontend:
     build: ./frontend
@@ -71,6 +99,34 @@ services:
     volumes:
       - frontend_static:/app/dist
 
+  integration:
+    build: ./integration
+    environment:
+      GOOGLE_DRIVE_CREDENTIALS: /app/credentials.json
+      FOLDER_ID: ${FOLDER_ID}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_CHAT_MODEL: ${OPENAI_CHAT_MODEL}
+      DB_URL: postgres://${DB_USER}:${DB_USER_PASSWORD}@postgres:5432/${DB_NAME}
+      ML_URL: ${ML_URL}
+    volumes:
+      - ./secrets/google_drive_credentials.json:/app/credentials.json:ro
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+    networks:
+      - ml-integration
+      - integration-postgres
+
 volumes:
   postgres_data:
   frontend_static:
+
+networks:
+  backend-postgres:
+  ml-postgres:
+  backend-nginx:
+  backend-ml:
+  ml-integration:
+  postgres-migrator:
+  integration-postgres:

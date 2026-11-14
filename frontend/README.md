@@ -19,11 +19,35 @@ API_PROXY_TARGET=http://localhost:8080
 See [.env.example](.env.example) for all variables. `VITE_API_URL` is only needed when the static
 frontend is hosted on another origin than the API.
 
+### Without a backend
+
+`npm run dev:mock` starts the same dev server, but `/api` is answered by a fake backend from
+[mock/mockApi.ts](mock/mockApi.ts) instead of the proxy, so the whole login flow works without
+docker compose:
+
+| Login    | Password | Result                                         |
+| -------- | -------- | ---------------------------------------------- |
+| `intern` | `secret` | logs in as «Аня» and opens the main page       |
+| `down`   | any      | the backend fails with `500`                   |
+| other    | any      | `400`, the form says the credentials are wrong |
+
+Like the backend, the mock sets an `access_token` cookie for 15 minutes and a `refresh_token`
+cookie for a week, and swaps the refresh token for a new pair on `POST /api/auth/refresh`. To see
+the refresh without waiting, shorten the access token in `.env.mock.local`:
+
+```bash
+MOCK_ACCESS_TOKEN_TTL_SECONDS=20
+```
+
+Tokens are kept in memory until the dev server restarts; log out from the avatar menu in the
+header. The mock is never part of the production build.
+
 ## Scripts
 
 | Command            | What it does                                  |
 | ------------------ | --------------------------------------------- |
 | `npm run dev`      | dev server with HMR                           |
+| `npm run dev:mock` | dev server with the mock API instead of proxy |
 | `npm run build`    | type-check and production build into `dist/`  |
 | `npm run lint`     | ESLint                                        |
 | `npm run format`   | Prettier                                      |
@@ -37,11 +61,12 @@ The HTML coverage report is written to `coverage/index.html`.
 ```
 src/
   router.ts        routes and session guards
-  pages/           route components (landing, home, ...)
+  pages/           route components (landing, home, ...) and the layout of the app pages
+  widgets/         blocks shared by pages: the header
   features/        user scenarios (auth, ...)
   entities/        domain data and its queries (session, ...)
   shared/api/      fetch wrapper for the backend
-  shared/ui/       reusable components: Button, Modal, Logo, icons
+  shared/ui/       reusable components: Button, Modal, Logo, Avatar, PageTitle, icons
   index.css        design tokens and global styles
 ```
 
@@ -51,6 +76,24 @@ The backend keeps the session in httpOnly cookies, so the frontend learns about 
 `GET /api/user`: a user means a session, `401`/`403` (or an unavailable backend) means a guest.
 
 - `/welcome` — landing page for guests; users with a session are redirected to `/`.
-- every other page lives under the pathless `authenticated` route, which sends guests to `/welcome`.
+- every other page lives under the pathless `authenticated` route, which sends guests to `/welcome`
+  and renders the page under the app header (`/`, `/profile`, `/chat`, `/knowledge-base`).
 
-After logging in or out, invalidate `sessionQueryOptions.queryKey` so the guards see the new state.
+The login modal on the landing page sends `{ "username", "password" }` to `POST /api/auth/login`.
+When the backend accepts them, the session is re-read and the user lands on `/`; `400`/`401` is
+shown as wrong credentials, anything else as "try again later".
+
+The access token lives 15 minutes and the refresh token a week. When a request gets `401`,
+`apiFetch` calls `POST /api/auth/refresh` and sends the request once more; requests that fail
+together share one refresh. If the refresh fails too, the `401` stands and the session is over, so
+a page load lands on `/welcome`. Login and refresh answers are never retried: there a `401` means
+wrong credentials or no session at all. Logout is, like any other request: after 15 idle minutes
+its access token may be stale while the session still lives.
+
+"Выйти из аккаунта" in the avatar menu of the header sends `POST /api/auth/logout`: only the
+backend can expire the httpOnly cookies. The session is re-read, and once it is gone the user lands
+on `/welcome`; if it is still there, the menu says logging out failed.
+
+After logging in or out, call `refetchSession(queryClient)` so the guards see the new state.
+Invalidating the query is not enough: the guards use `ensureQueryData`, which keeps returning the
+cached value of a query nothing subscribes to.

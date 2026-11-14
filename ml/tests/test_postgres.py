@@ -8,8 +8,8 @@ import numpy as np
 import pytest
 from pgvector.asyncpg import register_vector
 
-from ml.src.features.documents.chunker import Chunker
-from ml.src.features.documents.processor import DocumentProcessor
+from ml.src.documents.chunker import Chunker
+from ml.src.documents.processor import DocumentProcessor
 
 MIGRATIONS = Path(__file__).resolve().parents[2] / "infra" / "postgres"
 

@@ -9,6 +9,7 @@
   color: var(--color-surface);
   font-weight: 700;
   line-height: 1.2;
+  text-decoration: none;
   transition:
     background-color 0.15s ease,
     transform 0.15s ease;
@@ -22,20 +23,21 @@
 }
 
 @media (hover: hover) {
-  .button:hover:not(:disabled) {
+  .button:hover:not(:disabled, [aria-disabled="true"]) {
     background: #2a2a34;
   }
 
-  .button:hover:not(:disabled) svg {
+  .button:hover:not(:disabled, [aria-disabled="true"]) svg {
     transform: translateX(3px);
   }
 }
 
-.button:active:not(:disabled) {
+.button:active:not(:disabled, [aria-disabled="true"]) {
   transform: translateY(1px);
 }
 
-.button:disabled {
+.button:disabled,
+.button[aria-disabled="true"] {
   opacity: 0.5;
   cursor: not-allowed;
 }

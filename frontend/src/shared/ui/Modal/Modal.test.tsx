@@ -25,6 +25,17 @@ describe("Modal", () => {
     expect(screen.getByRole("textbox", { name: "Логин" })).toBeInTheDocument()
   })
 
+  it("focuses the element marked with data-autofocus when it opens", () => {
+    render(
+      <Modal open title="Вход в AI Buddy" onClose={() => {}}>
+        <button type="button">Отмена</button>
+        <input aria-label="Логин" data-autofocus />
+      </Modal>,
+    )
+
+    expect(screen.getByRole("textbox", { name: "Логин" })).toHaveFocus()
+  })
+
   it("stays closed while open is false", () => {
     const { dialog, onClose } = renderModal({ open: false })
 
