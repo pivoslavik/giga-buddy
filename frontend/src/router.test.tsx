@@ -6,6 +6,7 @@ import { intern, json, mockApi, renderApp, status } from "./test/app"
 function renderWithSession(path: string, session: User | null) {
   const fetchMock = mockApi({
     "GET /api/user": () => (session ? json(session) : status(401)),
+    "POST /api/auth/refresh": () => status(401),
     "GET /api/chat": () => json({ messages: [] }),
   })
   return { ...renderApp(path), fetchMock }
@@ -28,7 +29,10 @@ describe("session-based routing", () => {
 
       expect(await screen.findByRole("heading", landingHeading)).toBeInTheDocument()
       expect(router.state.location.pathname).toBe("/welcome")
-      expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(["/api/user"])
+      expect(fetchMock.mock.calls.map(([url, init]) => [init?.method ?? "GET", url])).toEqual([
+        ["GET", "/api/user"],
+        ["POST", "/api/auth/refresh"],
+      ])
     },
   )
 
