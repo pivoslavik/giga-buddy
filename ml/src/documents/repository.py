@@ -2,10 +2,22 @@ import numpy as np
 from asyncpg import Connection
 
 
-async def replace_document_chunks(
-    conn: Connection, document_id: int, chunks: list[str], vectors: np.ndarray
+async def delete_document_chunks(
+    conn: Connection,
+    document_id: int,
 ) -> None:
-    """Replace chunks inside the caller's transaction with the document row locked."""
+    await conn.execute(
+        "DELETE FROM document_chunks WHERE document_id = $1",
+        document_id,
+    )
+
+
+async def replace_document_chunks(
+    conn: Connection,
+    document_id: int,
+    chunks: list[str],
+    vectors: np.ndarray,
+) -> None:
     rows = [
         (document_id, chunk, vector, index)
         for index, (chunk, vector) in enumerate(zip(chunks, vectors, strict=True))
