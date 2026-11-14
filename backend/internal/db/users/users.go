@@ -33,3 +33,19 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (model
 	}
 	return user, nil
 }
+
+func (q *Queries) GetUserByUserID(ctx context.Context, userID models.UserID) (models.User, error) {
+	var user models.User
+	err := pgxscan.Get(ctx, q.pool, &user,
+		`
+		SELECT id, username, password_hash, email, role, display_name
+		FROM users 
+		WHERE id = $1 
+		`,
+		userID,
+	)
+	if err != nil {
+		return models.User{}, fmt.Errorf("GetUserByUserID: %w", err)
+	}
+	return user, nil
+}

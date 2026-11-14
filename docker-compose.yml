@@ -5,7 +5,7 @@ services:
       DATABASE_URL: postgres://${DB_USER}:${DB_USER_PASSWORD}@postgres:5432/${DB_NAME}
       JWT_SECRET: ${JWT_SECRET:?jwt secret is not set}
       COOKIE_DOMAIN: ${COOKIE_DOMAIN-}
-      COOKIE_SECURE: ${COOOKIE_SECURE:-false}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
     depends_on:
       postgres:
         condition: service_healthy
@@ -17,6 +17,10 @@ services:
       timeout: 3s
       retries: 5
       start_period: 10s
+    networks:
+      - backend-nginx
+      - backend-ml
+      - backend-postgres
 
   ml:
     build: ./ml
@@ -35,6 +39,10 @@ services:
       timeout: 3s
       retries: 5
       start_period: 120s
+    networks:
+      - backend-ml
+      - ml-integration
+      - ml-postgres
 
   postgres:
     image: pgvector/pgvector:0.8.2-pg17
@@ -49,6 +57,11 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      - backend-postgres
+      - ml-postgres
+      - postgres-migrator
+      - integration-postgres
 
   migrator:
     image: migrate/migrate:v4.18.3
@@ -62,6 +75,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - postgres-migrator
 
   nginx:
     image: nginx:1.30.6-alpine
@@ -75,6 +90,8 @@ services:
         condition: service_completed_successfully
       backend:
         condition: service_healthy
+    networks:
+      - backend-nginx
 
   frontend:
     build: ./frontend
@@ -94,7 +111,22 @@ services:
       ML_URL: ${ML_URL}
     volumes:
       - ./secrets/google_drive_credentials.json:/app/credentials.json:ro
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+    networks:
+      - ml-integration
+      - integration-postgres
 
 volumes:
   postgres_data:
   frontend_static:
+
+networks:
+  backend-postgres:
+  ml-postgres:
+  backend-nginx:
+  backend-ml:
+  ml-integration:
+  postgres-migrator:
+  integration-postgres:
