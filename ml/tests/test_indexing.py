@@ -27,6 +27,8 @@ def indexing(monkeypatch):
     monkeypatch.setenv("OPENAI_BASE_URL", "https://example.test")
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     monkeypatch.setenv("OPENAI_CHAT_MODEL", "test-model")
+    monkeypatch.setenv("MESSAGES_TO_CONTEXT", "2")
+    monkeypatch.setenv("DOCUMENTS_TO_CONTEXT", "1")
     model_api = Mock(generate_reply=AsyncMock(return_value="Answer"))
     monkeypatch.setattr(main, "ModelAPIManager", Mock(return_value=model_api))
     create_pool = Mock(return_value=pool)
@@ -189,11 +191,14 @@ def test_chat_uses_requested_message_and_shared_model(indexing, stream):
         messages = service.model_api.generate_reply.await_args.args[0]
 
     for call in pool.fetch.await_args_list[:2]:
-        sql, user_id, message_id = call.args
+        sql, user_id, message_id, limit = call.args
         assert "user_id = $1 AND id = $2" in sql
         assert "id <= $2" in sql
-        assert "LIMIT 20" in sql
-        assert (user_id, message_id) == (3, 12)
+        assert "LIMIT $3" in sql
+        assert (user_id, message_id, limit) == (3, 12, 3)
+    sql, _, limit = pool.fetch.await_args.args
+    assert "LIMIT $2" in sql
+    assert limit == 1
     loader.assert_called_once()
     assert model.encode.call_args_list[0].args == (["passage: Existing text."],)
     assert model.encode.call_args_list[1].args == (["query: Earlier message"],)
