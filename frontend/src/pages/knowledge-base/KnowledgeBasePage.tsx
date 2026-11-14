@@ -60,7 +60,6 @@ export function KnowledgeBasePage() {
     category: activeCategory,
     order,
   })
-  const openDocument = allDocuments.find((document) => document.id === doc)
 
   function resetFilters() {
     setQuery("")
@@ -179,10 +178,8 @@ export function KnowledgeBasePage() {
         </Link>
       </p>
 
-      {/* TODO(#17): the modal loads the document from GET /api/documents/{id} by itself */}
       <DocumentModal
-        title={openDocument?.title ?? "Документ"}
-        open={doc !== undefined}
+        document={doc === undefined ? undefined : { id: doc }}
         onClose={closeDocument}
       />
     </div>
