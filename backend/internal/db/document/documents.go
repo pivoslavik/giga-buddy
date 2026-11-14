@@ -21,6 +21,7 @@ func NewQueries(pool *pgxpool.Pool) Queries {
 
 func (q *Queries) GetShortDocumentsWithAmountByCategory(ctx context.Context, amount int, categories []string) ([]models.ShortDocument, error) {
 	documents := make([]models.ShortDocument, 0)
+
 	err := pgxscan.Select(ctx, q.pool, &documents,
 		`
 			SELECT id, title, description, category
