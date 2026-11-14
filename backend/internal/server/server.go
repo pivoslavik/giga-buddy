@@ -39,7 +39,9 @@ func Run(config config.ServerConfig) error {
 	protectedAPI.Use(middleware.CheckAccessToken(config.JWTSecret))
 
 	protectedAPI.GET("/user", user.HandleUser(&database))
+
 	chatHandler := chat.NewHandler(&database, config.MessagesPerUser, config.MLURL)
+	chatHandler.RegisterRoutes(protectedAPI)
 
 	// background tasks
 	go database.RefreshSessions.PeriodicallyDeleteExpiredRefreshSessions()

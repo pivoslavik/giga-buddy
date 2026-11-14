@@ -21,5 +21,5 @@ func NewHandler(database *db.Database, messagesPerUser int, mlURL string) Handle
 
 func (h *Handler) RegisterRoutes(protectedAPI *gin.RouterGroup) {
 	protectedAPI.POST("/chat", h.handlePostChat)
-	// TODO: add get chat handler
+	protectedAPI.GET("/chat", h.handleGetChat)
 }

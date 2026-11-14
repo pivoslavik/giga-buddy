@@ -22,8 +22,10 @@ func NewDatabaseConnection(databaseURL string) (Database, error) {
 	}
 	users := users.NewQueries(pool)
 	refreshSessions := refreshsessions.NewQueries(pool)
+	messages := messages.NewQueries(pool)
 	return Database{
 		Users:           users,
 		RefreshSessions: refreshSessions,
+		Messages:        messages,
 	}, nil
 }

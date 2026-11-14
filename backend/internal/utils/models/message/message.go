@@ -14,9 +14,9 @@ const (
 )
 
 type Message struct {
-	ID        MessageID
-	UserID    user.UserID
-	Text      string
-	Role      MessageRole
-	CreatedAt time.Time
+	ID        MessageID   `json:"id"`
+	UserID    user.UserID `json:"user_id"`
+	Text      string      `json:"content"` // content for contracts with frontend
+	Role      MessageRole `json:"role"`
+	CreatedAt time.Time   `json:"created_at"`
 }

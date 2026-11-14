@@ -8,7 +8,7 @@ type Queries struct {
 	pool *pgxpool.Pool
 }
 
-func newQueries(pool *pgxpool.Pool) Queries {
+func NewQueries(pool *pgxpool.Pool) Queries {
 	return Queries{
 		pool: pool,
 	}
