@@ -10,6 +10,7 @@ from openai import AsyncOpenAI
 from pgvector.asyncpg import register_vector
 
 from ..health import health
+from .mcp.client import BuddyMCPClient
 from .chat import router as chat
 from .chat.model_api_manager import ModelAPIManager
 from .chat.service import ChatService
@@ -25,6 +26,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     base_url = os.getenv("OPENAI_BASE_URL")
     api_key = os.getenv("OPENAI_API_KEY")
     chat_model = os.getenv("OPENAI_CHAT_MODEL")
+    mcp_url = os.getenv("BUDDY_MCP_URL")
+    buddy_mcp = (
+        BuddyMCPClient(
+            mcp_url,
+            os.environ["BUDDY_MCP_TOKEN"],
+            os.getenv("BUDDY_MCP_SUBMIT_TOKEN", ""),
+        )
+        if mcp_url
+        else None
+    )
     async with asyncpg.create_pool(
         os.environ["DATABASE_URL"],
         min_size=1,
@@ -48,7 +59,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             embeddings = await Embeddings.load()
             try:
                 app.state.chat_service = (
-                    ChatService(ChatStore(pool), embeddings, model_api)
+                    ChatService(ChatStore(pool), embeddings, model_api, buddy_mcp)
                     if model_api is not None
                     else None
                 )
