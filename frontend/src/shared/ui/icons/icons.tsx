@@ -141,6 +141,67 @@ export function LogoutIcon(props: IconProps) {
   )
 }
 
+export function ArrowDownIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M12 4v16M6 14l6 6 6-6" />
+    </BaseIcon>
+  )
+}
+
+export function SearchIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.8-3.8" />
+    </BaseIcon>
+  )
+}
+
+export function RocketIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M12 2.5c3.5 2.5 5 6 4.2 10.5L14.5 17h-5l-1.7-4C7 8.5 8.5 5 12 2.5z" />
+      <circle cx="12" cy="9.5" r="2" />
+      <path d="M7.8 13 5 15.5V19l4.5-2M16.2 13l2.8 2.5V19l-4.5-2M10.5 20l1.5 2 1.5-2" />
+    </BaseIcon>
+  )
+}
+
+export function CalendarIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <rect x="3.5" y="5" width="17" height="15.5" rx="2.5" />
+      <path d="M8 3v4M16 3v4M3.5 10h17M8 14h.01M12 14h.01M16 14h.01" />
+    </BaseIcon>
+  )
+}
+
+export function HeartIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M12 20s-7.5-4.6-9-9.3C2 7.6 4 4.5 7.2 4.5c2 0 3.6 1.1 4.8 2.8 1.2-1.7 2.8-2.8 4.8-2.8 3.2 0 5.2 3.1 4.2 6.2C19.5 15.4 12 20 12 20z" />
+    </BaseIcon>
+  )
+}
+
+export function UsersIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <circle cx="9" cy="8" r="3.5" />
+      <path d="M2.5 20a6.5 6.5 0 0 1 13 0M15.5 4.6a3.5 3.5 0 0 1 0 6.8M18 14.2a6.5 6.5 0 0 1 3.5 5.8" />
+    </BaseIcon>
+  )
+}
+
+export function BuildingIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M4 21V4.5A1.5 1.5 0 0 1 5.5 3h9A1.5 1.5 0 0 1 16 4.5V21M16 9h2.5A1.5 1.5 0 0 1 20 10.5V21M2 21h20M8 7h4M8 11h4M8 15h4" />
+    </BaseIcon>
+  )
+}
+
 export function SparkleIcon(props: IconProps) {
   return (
     <BaseIcon fill="currentColor" stroke="none" {...props}>

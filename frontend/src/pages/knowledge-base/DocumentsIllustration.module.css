@@ -1,0 +1,47 @@
+/* the sheets and the ball float slightly out of step, the spark flickers */
+.scene {
+  overflow: visible;
+}
+
+.scene > * {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.shadow {
+  fill: #d9cdf6;
+  opacity: 0.6;
+}
+
+.spark {
+  fill: none;
+  stroke: var(--color-accent-green);
+  stroke-width: 7;
+  stroke-linecap: round;
+  animation: flicker 3s ease-in-out infinite;
+}
+
+.back {
+  animation: float 6s ease-in-out -1.5s infinite;
+}
+
+.front {
+  animation: float 5s ease-in-out infinite;
+}
+
+.ball {
+  animation: float 4.5s ease-in-out -2.5s infinite;
+}
+
+@keyframes float {
+  50% {
+    translate: 0 -6px;
+  }
+}
+
+@keyframes flicker {
+  50% {
+    opacity: 0.55;
+    scale: 0.92;
+  }
+}

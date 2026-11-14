@@ -49,7 +49,8 @@ MOCK_ACCESS_TOKEN_TTL_SECONDS=20
 ```
 
 Tokens are kept in memory until the dev server restarts; log out from the avatar menu in the
-header. The mock is never part of the production build.
+header. The knowledge base lists the documents of [mock/mockDocuments.ts](mock/mockDocuments.ts).
+The mock is never part of the production build.
 
 ## Scripts
 
@@ -74,7 +75,7 @@ src/
   pages/           route components (landing, home, ...) and the layout of the app pages
   widgets/         blocks shared by pages: the header
   features/        user scenarios (auth, ...)
-  entities/        domain data and its queries (session, ...)
+  entities/        domain data and its queries (session, document)
   shared/api/      fetch wrapper for the backend
   shared/ui/       reusable components: Button, Modal, Logo, Avatar, PageTitle, icons
   index.css        design tokens and global styles
@@ -107,3 +108,15 @@ on `/welcome`; if it is still there, the menu says logging out failed.
 After logging in or out, call `refetchSession(queryClient)` so the guards see the new state.
 Invalidating the query is not enough: the guards use `ensureQueryData`, which keeps returning the
 cached value of a query nothing subscribes to.
+
+## Knowledge base
+
+`/knowledge-base` lists the documents from `GET /api/documents?amount=…&category=…` (#13). The
+backend wants `amount` and at least one `category`, and it can neither search nor skip documents,
+so the page asks once for up to 500 documents of every category. The search by title and
+description, the filter by category and the sorting by title run in the browser: switching them
+needs no request, and the search sees the whole base.
+
+A card is a link to `/knowledge-base?doc=<id>`, which opens the document in a modal over the list,
+so a document can be opened in a new tab or shared. Closing it opened from the list goes back in
+history; opened by its link, the list takes its place.
