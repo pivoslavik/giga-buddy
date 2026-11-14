@@ -1,4 +1,4 @@
-package models
+package user 
 
 import "fmt"
 
@@ -7,12 +7,12 @@ type UserID int64
 type UserRole string
 
 const (
-	Admin  UserRole = "admin"
-	Intern UserRole = "intern"
+	AdminUserRole  UserRole = "admin"
+	InternUserRole UserRole = "intern"
 )
 
 func CheckUserRole(role string) error {
-	if role != string(Admin) && role != string(Intern) {
+	if role != string(AdminUserRole) && role != string(InternUserRole) {
 		return fmt.Errorf("CheckUserRole: invalid user role: %s", role)
 	}
 	return nil

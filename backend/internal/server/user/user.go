@@ -3,7 +3,7 @@ package user
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/pivoslavik/giga-buddy/backend/internal/db"
-	"github.com/pivoslavik/giga-buddy/backend/internal/utils/models"
+	"github.com/pivoslavik/giga-buddy/backend/internal/utils/server"
 	"log"
 	"net/http"
 )
@@ -11,16 +11,10 @@ import (
 func HandleUser(database *db.Database) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
-		value, ok := c.Get("userID")
-		if !ok {
+		userID,err := server.GetUserIDFromContext(c)
+		if err != nil {
 			c.Status(http.StatusInternalServerError)
-			log.Printf("HandleUser: no userID set")
-			return
-		}
-		userID, ok := value.(models.UserID)
-		if !ok {
-			c.Status(http.StatusInternalServerError)
-			log.Printf("HandleUser: could't convert UserID value to UserID type: %T", value)
+			log.Printf("HandleUser: %v",err)
 			return
 		}
 

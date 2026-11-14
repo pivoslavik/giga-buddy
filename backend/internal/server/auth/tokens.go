@@ -9,17 +9,19 @@ import (
 	"github.com/pivoslavik/giga-buddy/backend/internal/db"
 	"github.com/pivoslavik/giga-buddy/backend/internal/tokens/access"
 	"github.com/pivoslavik/giga-buddy/backend/internal/tokens/refresh"
-	"github.com/pivoslavik/giga-buddy/backend/internal/utils/models"
+	"github.com/pivoslavik/giga-buddy/backend/internal/utils/models/user"
+	"github.com/pivoslavik/giga-buddy/backend/internal/utils/models/refreshsession"
+
 )
 
-func setRefreshToken(c *gin.Context, database *db.Database, userID models.UserID) error {
+func setRefreshToken(c *gin.Context, database *db.Database, userID user.UserID) error {
 	refreshToken, err := refresh.CreateRefreshToken()
 	if err != nil {
 		return fmt.Errorf("setRefreshToken: %w", err)
 	}
 
 	refreshDuration := 24 * time.Hour * 7
-	refreshSession := models.RefreshSession{
+	refreshSession := refreshsession.RefreshSession{
 		UserID:    userID,
 		TokenHash: refresh.HashRefreshToken(refreshToken),
 		UserAgent: c.Request.UserAgent(),
@@ -44,7 +46,7 @@ func setRefreshToken(c *gin.Context, database *db.Database, userID models.UserID
 	return nil
 }
 
-func setAccessToken(c *gin.Context, userID models.UserID, jwtSecret []byte) error {
+func setAccessToken(c *gin.Context, userID user.UserID, jwtSecret []byte) error {
 	accessToken, err := access.CreateAccessToken(userID, jwtSecret)
 	if err != nil {
 		return fmt.Errorf("setAccessToken: %w", err)

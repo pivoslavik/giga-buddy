@@ -8,7 +8,9 @@ import (
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/pivoslavik/giga-buddy/backend/internal/utils/models"
+	"github.com/pivoslavik/giga-buddy/backend/internal/utils/models/refreshsession"
+	usermodel "github.com/pivoslavik/giga-buddy/backend/internal/utils/models/user"
+
 )
 
 type Queries struct {
@@ -21,8 +23,12 @@ func NewQueries(pool *pgxpool.Pool) Queries {
 	}
 }
 
-func (q *Queries) CreateRefreshSession(ctx context.Context, session models.RefreshSession) (models.RefreshSessionID, time.Time, error) {
-	var dbID models.RefreshSessionID
+func (q *Queries) CreateRefreshSession(
+	ctx context.Context, 
+	session refreshsession.RefreshSession,
+	) (refreshsession.RefreshSessionID, time.Time, error) {
+
+	var dbID refreshsession.RefreshSessionID
 	var createdAt time.Time
 	err := q.pool.QueryRow(ctx,
 		`
@@ -38,8 +44,8 @@ func (q *Queries) CreateRefreshSession(ctx context.Context, session models.Refre
 	return dbID, createdAt, nil
 }
 
-func (q *Queries) GetRefreshSessionByTokenHash(ctx context.Context, hash string) (models.RefreshSession, error) {
-	var session models.RefreshSession
+func (q *Queries) GetRefreshSessionByTokenHash(ctx context.Context, hash string) (refreshsession.RefreshSession, error) {
+	var session refreshsession.RefreshSession
 	err := pgxscan.Get(ctx, q.pool, &session,
 		`
 		SELECT id, user_id, token_hash, user_agent, ip, expires_at, created_at
@@ -48,7 +54,7 @@ func (q *Queries) GetRefreshSessionByTokenHash(ctx context.Context, hash string)
 		hash,
 	)
 	if err != nil {
-		return models.RefreshSession{}, fmt.Errorf("GetRefreshSessionByTokenHash: %w", err)
+		return refreshsession.RefreshSession{}, fmt.Errorf("GetRefreshSessionByTokenHash: %w", err)
 	}
 	return session, nil
 }
@@ -66,7 +72,7 @@ func (q *Queries) DeleteRefreshSessionByTokenHash(ctx context.Context, hash stri
 	return nil
 }
 
-func (q *Queries) DeleteRefreshSessionByUserID(ctx context.Context, userID models.UserID) error {
+func (q *Queries) DeleteRefreshSessionByUserID(ctx context.Context, userID usermodel.UserID) error {
 	_, err := q.pool.Exec(ctx,
 		`
 		DELETE FROM auth_refresh_sessions WHERE user_id = $1

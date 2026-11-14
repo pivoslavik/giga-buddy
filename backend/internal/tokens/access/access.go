@@ -6,12 +6,12 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/pivoslavik/giga-buddy/backend/internal/utils/models"
+	usermodel "github.com/pivoslavik/giga-buddy/backend/internal/utils/models/user"
 )
 
 const accessTokenDuration = 15 * time.Minute
 
-func CreateAccessToken(userID models.UserID, secret []byte) (string, error) {
+func CreateAccessToken(userID usermodel.UserID, secret []byte) (string, error) {
 	now := time.Now()
 	claims := jwt.RegisteredClaims{
 		Subject:   strconv.FormatInt(int64(userID), 10),
@@ -26,7 +26,7 @@ func CreateAccessToken(userID models.UserID, secret []byte) (string, error) {
 	return tokenString, nil
 }
 
-func ParseAccessToken(tokenString string, secret []byte) (models.UserID, error) {
+func ParseAccessToken(tokenString string, secret []byte) (usermodel.UserID, error) {
 	var claims jwt.RegisteredClaims
 
 	token, err := jwt.ParseWithClaims(
@@ -54,5 +54,5 @@ func ParseAccessToken(tokenString string, secret []byte) (models.UserID, error) 
 		return 0, fmt.Errorf("ParseAccessToken: invalid user ID")
 	}
 
-	return models.UserID(userID), nil
+	return usermodel.UserID(userID), nil
 }
