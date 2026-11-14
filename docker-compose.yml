@@ -30,6 +30,8 @@ services:
       OPENAI_BASE_URL: "${OPENAI_BASE_URL:-}"
       OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
       OPENAI_CHAT_MODEL: "${OPENAI_CHAT_MODEL:-}"
+      MESSAGES_TO_CONTEXT: "${MESSAGES_TO_CONTEXT:-}"
+      DOCUMENTS_TO_CONTEXT: "${DOCUMENTS_TO_CONTEXT:-}"
     depends_on:
       migrator:
         condition: service_completed_successfully

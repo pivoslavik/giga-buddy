@@ -21,7 +21,9 @@ class ChatStore:
     def __init__(self, pool: asyncpg.Pool) -> None:
         self.pool = pool
 
-    async def get_history(self, user_id: int, message_id: int) -> list[ChatMessage]:
+    async def get_history(
+        self, user_id: int, message_id: int, *, previous_limit: int
+    ) -> list[ChatMessage]:
         try:
             rows = await self.pool.fetch(
                 """
@@ -33,25 +35,29 @@ class ChatStore:
                       WHERE user_id = $1 AND id = $2 AND role = 'user'
                   )
                 ORDER BY id DESC
-                LIMIT 20
+                LIMIT $3
                 """,
                 user_id,
                 message_id,
+                previous_limit + 1,
             )
         except DATABASE_ERRORS as exc:
             raise DatabaseError("Could not load chat history") from exc
 
         return [ChatMessage(row["role"], row["text"]) for row in reversed(rows)]
 
-    async def find_relevant_chunks(self, embedding: NDArray) -> list[tuple[int, str]]:
+    async def find_relevant_chunks(
+        self, embedding: NDArray, *, limit: int
+    ) -> list[tuple[int, str]]:
         try:
             rows = await self.pool.fetch(
                 """
                 SELECT id, content FROM document_chunks
                 ORDER BY embedding <=> $1::vector, id
-                LIMIT 5
+                LIMIT $2
                 """,
                 embedding,
+                limit,
             )
         except DATABASE_ERRORS as exc:
             raise DatabaseError("Could not load relevant chunks") from exc
