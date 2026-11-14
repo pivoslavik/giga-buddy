@@ -23,11 +23,11 @@ async def index_document(
     try:
         match payload.status:
             case DocumentStatus.ADDED | DocumentStatus.MODIFIED:
-                await request.app.state.document_processor.process_add_or_modify_documents_chunks(
+                await request.app.state.document_processor.process_add_or_modify_document_chunks(
                     document_id
                 )
             case DocumentStatus.DELETED:
-                await request.app.state.document_processor.process_delete_documents_chunks(
+                await request.app.state.document_processor.process_delete_document_chunks(
                     document_id
                 )
     except DocumentNotFound as exc:

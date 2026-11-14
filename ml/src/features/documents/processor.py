@@ -27,7 +27,7 @@ class DocumentProcessor:
         self._chunker = chunker
         self._embeddings = embeddings
 
-    async def _collect_chuncks(self, document_id: int):
+    async def _collect_chunks(self, document_id: int):
         async with self._pool.acquire(timeout=10) as conn:
             text = await get_document_text(conn, document_id)
         if text is None:
@@ -38,8 +38,8 @@ class DocumentProcessor:
         vectors = await self._embeddings.encode(chunks)
         return text, chunks, vectors
 
-    async def _process_chuncks(self, document_id: int):
-        text, chunks, vectors = await self._collect_chuncks(document_id)
+    async def _process_chunks(self, document_id: int):
+        text, chunks, vectors = await self._collect_chunks(document_id)
         async with self._pool.acquire(timeout=10) as conn:
             async with conn.transaction():
                 current_text = await get_document_text(conn, document_id, lock=True)
@@ -49,11 +49,11 @@ class DocumentProcessor:
                     raise DocumentChanged
                 await replace_document_chunks(conn, document_id, chunks, vectors)
 
-    async def process_add_or_modify_documents_chunks(self, document_id: int):
-        await self._process_chuncks(document_id=document_id)
+    async def process_add_or_modify_document_chunks(self, document_id: int):
+        await self._process_chunks(document_id=document_id)
         return
 
-    async def process_delete_documents_chunks(self, document_id: int):
+    async def process_delete_document_chunks(self, document_id: int):
         async with self._pool.acquire(timeout=10) as conn:
             async with conn.transaction():
                 await delete_document_chunks(conn, document_id)
