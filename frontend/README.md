@@ -12,9 +12,10 @@ npm run dev
 The frontend calls the API on its own origin, and every `/api/*` request is proxied to the backend
 with its method, path, query, headers, cookies and body:
 
-- `npm run dev` and `npm run preview` proxy it to `API_PROXY_TARGET` (`http://localhost` by
-  default, which is nginx from `docker compose up`). They add `X-Forwarded-*` headers and drop the
-  `Domain` of the cookies the backend sets, so the browser keeps them for the dev host.
+- `npm run dev` and `npm run preview` proxy it to `API_PROXY_TARGET` (`http://localhost`, port 80,
+  by default: nginx from `docker compose up`, which forwards to `backend:8080`). They add
+  `X-Forwarded-*` headers and drop the `Domain` of the cookies the backend sets, so the browser
+  keeps them for the dev host.
 - in docker compose and production, nginx ([nginx/default.conf](../nginx/default.conf)) proxies it
   to `backend:8080` and passes the address of the browser in `X-Real-IP` and `X-Forwarded-For`.
 
