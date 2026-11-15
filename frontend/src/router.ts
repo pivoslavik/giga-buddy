@@ -15,7 +15,7 @@ import {
   type KnowledgeBaseSearch,
 } from "./pages/knowledge-base/KnowledgeBasePage"
 import { LandingPage } from "./pages/landing/LandingPage"
-import { ProfilePage } from "./pages/placeholder/PlaceholderPages"
+import { ProfilePage } from "./pages/profile/ProfilePage"
 
 export interface RouterContext {
   queryClient: QueryClient

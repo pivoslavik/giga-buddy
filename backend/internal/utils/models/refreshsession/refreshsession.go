@@ -1,6 +1,7 @@
-package models
+package refreshsession
 
 import (
+	"github.com/pivoslavik/giga-buddy/backend/internal/utils/models/user"
 	"time"
 )
 
@@ -8,7 +9,7 @@ type RefreshSessionID int64
 
 type RefreshSession struct {
 	ID        RefreshSessionID `db:"id"`
-	UserID    UserID           `db:"user_id"`
+	UserID    user.UserID      `db:"user_id"`
 	TokenHash string           `db:"token_hash"`
 	UserAgent string           `db:"user_agent"`
 	IP        string           `db:"ip"`

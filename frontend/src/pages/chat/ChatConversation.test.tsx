@@ -29,6 +29,30 @@ function deferred<T>() {
   return { promise, resolve }
 }
 
+function mockChatStream() {
+  let stream!: ReadableStreamDefaultController<Uint8Array>
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) {
+      stream = controller
+    },
+  })
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(Response.json({ messages: [] }))
+    .mockResolvedValueOnce(
+      new Response(body, { headers: { "Content-Type": "text/event-stream; charset=utf-8" } }),
+    )
+  vi.stubGlobal("fetch", fetchMock)
+
+  return {
+    fetchMock,
+    emit(type: string, data: object) {
+      stream.enqueue(new TextEncoder().encode(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`))
+    },
+    close: () => stream.close(),
+  }
+}
+
 describe("chat", () => {
   it("shows a loading state and retries failed history, then displays Markdown", async () => {
     const initial = deferred<Response>()
@@ -62,21 +86,10 @@ describe("chat", () => {
     )
   })
 
-  it("sends the documented request and reloads history after the SSE stream closes", async () => {
-    let stream: ReadableStreamDefaultController<Uint8Array> | undefined
-    const body = new ReadableStream<Uint8Array>({
-      start(controller) {
-        stream = controller
-      },
-    })
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(Response.json({ messages: [] }))
-      .mockResolvedValueOnce(
-        new Response(body, { headers: { "Content-Type": "text/event-stream; charset=utf-8" } }),
-      )
-      .mockResolvedValueOnce(Response.json({ messages: [assistantMessage] }))
-    vi.stubGlobal("fetch", fetchMock)
+  it("streams tokens into one reply and reconciles the full response with history", async () => {
+    const { fetchMock, emit, close } = mockChatStream()
+    const history = deferred<Response>()
+    fetchMock.mockReturnValueOnce(history.promise)
     renderChat()
 
     const emptyHeading = await screen.findByRole("heading", { name: "Напиши первое сообщение" })
@@ -97,18 +110,78 @@ describe("chat", () => {
       }),
     )
 
-    stream?.enqueue(new TextEncoder().encode("event: opaque\ndata: opaque\n\n"))
-    stream?.close()
+    emit("token", { delta: "Часть " })
+    const reply = await screen.findByRole("article", { name: "AI Buddy" })
+    expect(reply).toHaveTextContent("Часть")
+    expect(fetchMock).toHaveBeenCalledTimes(2)
 
-    expect(await screen.findByText("Подготовка")).toBeInTheDocument()
-    expect(screen.getByRole("article", { name: "AI Buddy" })).toHaveAttribute(
-      "data-entering",
-      "true",
-    )
+    emit("token", { delta: "ответа" })
+    await waitFor(() => expect(reply).toHaveTextContent("Часть ответа"))
+    expect(screen.getAllByRole("article", { name: "AI Buddy" })).toEqual([reply])
+
+    const content = "Часть ответа. Готово!"
+    emit("done", { response: content })
+    close()
+
+    expect((await screen.findByText(content)).closest("article")).toBe(reply)
+    expect(reply.querySelector("p")?.textContent).toBe(content)
     expect(fetchMock).toHaveBeenCalledTimes(3)
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Отправить сообщение" })).toBeEnabled(),
+    history.resolve(
+      Response.json({
+        messages: [
+          { ...assistantMessage, content },
+          {
+            ...assistantMessage,
+            id: "saved-marker",
+            content: "История обновилась",
+          },
+        ],
+      }),
     )
+    await screen.findByText("История обновилась")
+    expect(screen.getAllByText(content)).toHaveLength(1)
+    expect(document.querySelector("[data-stream-fragment]")).toBeNull()
+  })
+
+  it("retains the streamed reply when history fails and reconciles it on retry", async () => {
+    const { fetchMock, emit, close } = mockChatStream()
+    const content = "Готовый ответ"
+    fetchMock
+      .mockResolvedValueOnce(new Response(null, { status: 503 }))
+      .mockResolvedValueOnce(Response.json({ messages: [{ ...assistantMessage, content }] }))
+    renderChat()
+
+    await screen.findByRole("heading", { name: "Напиши первое сообщение" })
+    await userEvent.type(screen.getByRole("textbox"), "Вопрос{Enter}")
+    emit("token", { delta: content })
+    emit("done", { response: content })
+    close()
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Не удалось загрузить историю.")
+    expect(screen.getByText(content)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Повторить" }))
+    await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument())
+    expect(screen.getAllByText(content)).toHaveLength(1)
+  })
+
+  it("reports an SSE error after HTTP 200 and stops generating", async () => {
+    const { fetchMock, emit, close } = mockChatStream()
+    renderChat()
+
+    await screen.findByRole("heading", { name: "Напиши первое сообщение" })
+    const input = screen.getByRole("textbox")
+    await userEvent.type(input, "Вопрос{Enter}")
+    emit("token", { delta: "Незавершённый ответ" })
+    expect(await screen.findByText("Незавершённый ответ")).toBeInTheDocument()
+    emit("error", { detail: "Model API request failed" })
+    close()
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Не удалось получить ответ.")
+    expect(input).toHaveValue("Вопрос")
+    expect(screen.queryByRole("article", { name: "AI Buddy" })).not.toBeInTheDocument()
+    expect(screen.queryByText("AI Buddy готовит ответ…")).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Отправить сообщение" })).toBeEnabled()
+    expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
   it("keeps the draft if sending fails", async () => {
