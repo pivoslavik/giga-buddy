@@ -1,3 +1,4 @@
+import logging
 import os
 from collections.abc import AsyncIterator
 from contextlib import AsyncExitStack, asynccontextmanager
@@ -19,6 +20,14 @@ from .documents import router as documents
 from .documents.chunker import Chunker
 from .documents.embeddings import Embeddings
 from .documents.processor import DocumentProcessor
+
+
+class HealthCheckLogFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        if not isinstance(record.args, tuple) or len(record.args) != 5:
+            return True
+        _, method, path, _, status = record.args
+        return (method, path, status) != ("GET", "/health", 200)
 
 
 @asynccontextmanager
@@ -79,4 +88,5 @@ app.include_router(health.router)
 
 
 if __name__ == "__main__":
+    logging.getLogger("uvicorn.access").addFilter(HealthCheckLogFilter())
     uvicorn.run(app, host="0.0.0.0", port=8000)

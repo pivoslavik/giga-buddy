@@ -4,6 +4,8 @@ from uuid import uuid4
 
 import asyncpg
 
+from .knowledge import get_page
+
 ACCESS = {
     "CAT-DEV": ("read", "access"),
     "buddy-demo": ("contributor", "repository-access"),
@@ -15,9 +17,88 @@ PULL_REQUESTS = {
 REVIEWER = "demo-reviewer"
 
 
+def inspect_access(user_id: int, resource: str) -> dict:
+    route = ACCESS.get(resource)
+    if route is None:
+        return {"status": "unavailable"}
+    level, source = route
+    return {
+        "resource": resource,
+        "level": level,
+        "approver": "наставник",
+        "readable": resource == "CAT-DEV" and get_page("cat-dev", user_id) is not None,
+        "source": get_page(source, user_id),
+    }
+
+
+def inspect_pull_request(user_id: int, pr_number: int) -> dict:
+    pr = PULL_REQUESTS.get(pr_number)
+    if pr is None:
+        return {"status": "unavailable"}
+    return {
+        "pr_number": pr_number,
+        **pr,
+        "allowed_reviewers": [REVIEWER],
+        "url": f"https://git.demo.example/buddy-demo/pull/{pr_number}",
+        "source": get_page("ci" if pr["ci"] == "failed" else "first-pr", user_id),
+    }
+
+
 class DemoActions:
     def __init__(self, pool: asyncpg.Pool) -> None:
         self.pool = pool
+
+    async def prepare_access(
+        self, user_id: int, resource: str, justification: str
+    ) -> dict:
+        info = inspect_access(user_id, resource)
+        if info.get("status") == "unavailable" or info["readable"]:
+            return info
+        justification = justification.strip()
+        if not 1 <= len(justification) <= 500:
+            return {"status": "invalid_justification"}
+        payload = dict(
+            resource=resource,
+            level=info["level"],
+            approver=info["approver"],
+            justification=justification,
+        )
+        return {
+            **await self.prepare(user_id, "access", payload),
+            "source": info["source"],
+        }
+
+    async def prepare_review(self, user_id: int, pr_number: int, reviewer: str) -> dict:
+        info = inspect_pull_request(user_id, pr_number)
+        if info.get("status") == "unavailable":
+            return info
+        if info["ci"] != "passed" or reviewer not in info["allowed_reviewers"]:
+            return {"status": "blocked", "pr": {"demo": True, **info}}
+        payload = dict(pr_number=pr_number, reviewer=reviewer, commit=info["commit"])
+        return {
+            **await self.prepare(user_id, "review", payload),
+            "source": info["source"],
+        }
+
+    async def prepare_absence(
+        self, user_id: int, start: str, end: str, absence_type: str
+    ) -> dict:
+        try:
+            start_utc, end_utc = absence_interval(start, end)
+        except (ValueError, OverflowError):
+            return {"status": "invalid_interval"}
+        payload = dict(
+            start=start_utc,
+            end=end_utc,
+            absence_type=absence_type,
+            approver="руководитель команды",
+            requested_start=start,
+            requested_end=end,
+        )
+        return {
+            **await self.prepare(user_id, "absence", payload),
+            "source": get_page("absence", user_id),
+        }
 
     async def prepare(self, owner: int, kind: str, payload: dict) -> dict:
         action_id = uuid4().hex
