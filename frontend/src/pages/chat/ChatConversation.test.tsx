@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 import { ChatConversation } from "./ChatConversation"
@@ -13,21 +13,77 @@ const assistantMessage: ChatMessage = {
   created_at: "2026-11-09T12:00:00Z",
 }
 
-function renderChat(transport = chatTransport) {
+function renderChat(transport = chatTransport, displayName = "Гриша") {
   return render(
     <QueryClientProvider client={new QueryClient()}>
-      <ChatConversation userId={1} displayName="Гриша" transport={transport} />
+      <ChatConversation userId={1} displayName={displayName} transport={transport} />
     </QueryClientProvider>,
   )
 }
 
 function deferred<T>() {
   let resolve!: (value: T) => void
-  const promise = new Promise<T>((finish) => {
+  let reject!: (reason: unknown) => void
+  const promise = new Promise<T>((finish, fail) => {
     resolve = finish
+    reject = fail
   })
-  return { promise, resolve }
+  return { promise, resolve, reject }
 }
+
+/** Runs requestAnimationFrame callbacks one frame at a time, 16 ms apart. */
+function stubAnimationFrames() {
+  const frames = new Map<number, FrameRequestCallback>()
+  let frameId = 0
+  let now = 0
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+    frames.set(++frameId, callback)
+    return frameId
+  })
+  vi.stubGlobal("cancelAnimationFrame", (id: number) => frames.delete(id))
+
+  return {
+    frames,
+    runFrame() {
+      const callbacks = [...frames.values()]
+      frames.clear()
+      now += 16
+      act(() => callbacks.forEach((callback) => callback(now)))
+    },
+  }
+}
+
+/** Gives the message log a scrollable size: `height()` of content in a 200px tall viewport. */
+function sizeLog(log: HTMLElement, height: () => number) {
+  const scrollTo = vi.fn()
+  Object.defineProperties(log, {
+    scrollHeight: { get: height },
+    clientHeight: { value: 200 },
+    scrollTo: { value: scrollTo },
+  })
+  return scrollTo
+}
+
+/** A transport whose reply streams through `onDelta` and ends on `done.resolve()`. */
+function streamingTransport(history: ChatMessage[] = [assistantMessage]) {
+  const done = deferred<string | void>()
+  const reply = {
+    done,
+    signal: undefined as AbortSignal | undefined,
+    onDelta: (() => undefined) as (delta: string) => void,
+    transport: {
+      load: vi.fn(async () => history),
+      send: async (_message, signal, receive) => {
+        reply.signal = signal
+        reply.onDelta = receive
+        return done.promise
+      },
+    } satisfies ChatTransport,
+  }
+  return reply
+}
+
+const scrollButtonName = { name: "Прокрутить вниз" }
 
 function mockChatStream() {
   let stream!: ReadableStreamDefaultController<Uint8Array>
@@ -514,4 +570,250 @@ describe("chat", () => {
       expect(screen.getByRole("button", { name: "Отправить сообщение" })).toBeEnabled(),
     )
   })
+
+  it("stops the jump to the latest message when the user scrolls up or the chat closes", async () => {
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }))
+    const { unmount } = renderChat({ load: async () => [assistantMessage], send: vi.fn() })
+    await screen.findByText("Подготовка")
+    const log = screen.getByRole("log")
+    sizeLog(log, () => 1000)
+    const { frames, runFrame } = stubAnimationFrames()
+    log.scrollTop = 100
+    fireEvent.scroll(log)
+    const button = screen.getByRole("button", scrollButtonName)
+
+    fireEvent.click(button)
+    // a second click while moving does not start another animation
+    fireEvent.click(button)
+    expect(frames.size).toBe(1)
+    runFrame()
+    expect(log.scrollTop).toBeGreaterThan(100)
+    // the scrollbar is dragged up between two frames, before its scroll event
+    log.scrollTop = 50
+    runFrame()
+    expect(frames.size).toBe(0)
+    expect(log.scrollTop).toBe(50)
+    expect(screen.getByRole("button", scrollButtonName)).toBeInTheDocument()
+
+    fireEvent.click(button)
+    runFrame()
+    log.scrollTop = 20
+    fireEvent.scroll(log)
+    expect(frames.size).toBe(0)
+    expect(log.scrollTop).toBe(20)
+
+    fireEvent.click(button)
+    expect(frames.size).toBe(1)
+    unmount()
+    expect(frames.size).toBe(0)
+  })
+
+  it("ends the smooth scroll to a new message at once when the user scrolls up", async () => {
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }))
+    const reply = streamingTransport([])
+    renderChat(reply.transport)
+    await screen.findByRole("heading", { name: "Напиши первое сообщение" })
+    const log = screen.getByRole("log")
+    let height = 400
+    const scrollTo = sizeLog(log, () => height)
+    log.scrollTop = 200
+    fireEvent.scroll(log)
+    height = 450
+    await userEvent.type(screen.getByRole("textbox"), "Вопрос{Enter}")
+    expect(scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 250, behavior: "smooth" })
+
+    fireEvent.wheel(log, { deltaY: -40 })
+
+    expect(scrollTo).toHaveBeenLastCalledWith({ top: 200, behavior: "instant" })
+    await finishReply(reply)
+  })
+
+  it.each<[string, (log: HTMLElement) => void]>([
+    [
+      "a swipe down",
+      (log) => {
+        fireEvent.touchStart(log, { touches: [{ clientX: 10, clientY: 100 }] })
+        fireEvent.touchMove(log, { touches: [{ clientX: 12, clientY: 140 }] })
+      },
+    ],
+    ["PageUp", (log) => fireEvent.keyDown(log, { key: "PageUp" })],
+    ["Shift+Space", (log) => fireEvent.keyDown(log, { key: " ", shiftKey: true })],
+  ])("stops following the reply after %s", async (_, scrollUp) => {
+    const { log, reply, grow } = await streamAtTheEnd()
+
+    scrollUp(log)
+    grow(140, "и его продолжение")
+
+    expect(log.scrollTop).toBe(560)
+    expect(screen.getByRole("button", scrollButtonName)).toBeInTheDocument()
+    await finishReply(reply)
+  })
+
+  it.each<[string, (log: HTMLElement) => void]>([
+    [
+      "a swipe to the side",
+      (log) => {
+        fireEvent.touchStart(log, { touches: [{ clientX: 10, clientY: 100 }] })
+        fireEvent.touchMove(log, { touches: [{ clientX: 60, clientY: 110 }] })
+      },
+    ],
+    [
+      "a swipe that started with no touch",
+      (log) => {
+        fireEvent.touchStart(log, { touches: [] })
+        fireEvent.touchMove(log, { touches: [{ clientX: 10, clientY: 200 }] })
+      },
+    ],
+    ["ArrowDown", (log) => fireEvent.keyDown(log, { key: "ArrowDown" })],
+    ["a wheel down", (log) => fireEvent.wheel(log, { deltaY: 40 })],
+  ])("keeps following the reply after %s", async (_, gesture) => {
+    const { log, reply, grow } = await streamAtTheEnd()
+
+    gesture(log)
+    grow(140, "и его продолжение")
+
+    expect(log.scrollTop).toBe(700)
+    await finishReply(reply)
+  })
+
+  it("swings the send arrow on hover and launches it with the message", async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }))
+    const reply = streamingTransport()
+    renderChat(reply.transport)
+    await screen.findByText("Подготовка")
+    const button = screen.getByRole("button", { name: "Отправить сообщение" })
+    const { animate, animations } = stubAnimate(button.firstElementChild!)
+    const played = () => animations.map(({ id }) => id)
+
+    await user.hover(button)
+    expect(played()).toEqual(["hover"])
+    expect(animate).toHaveBeenLastCalledWith(expect.any(Array), { duration: 620, fill: "forwards" })
+    await user.unhover(button)
+    expect(played()).toEqual(["hover", "rest"])
+    expect(animations[0].cancel).toHaveBeenCalled()
+
+    await user.type(screen.getByRole("textbox"), "Вопрос{Enter}")
+    expect(played()).toEqual(["hover", "rest", "launch"])
+    expect(animate).toHaveBeenLastCalledWith(expect.any(Array), { duration: 720, fill: "none" })
+
+    // leaving the button neither cuts the launch short nor moves the arrow after it
+    fireEvent.pointerOut(button)
+    animations[2].playState = "finished"
+    fireEvent.pointerOut(button)
+    expect(played()).toEqual(["hover", "rest", "launch"])
+    await finishReply(reply)
+  })
+
+  it("keeps the send arrow still for touch and with reduced motion", async () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((query: string) => ({ matches: query.startsWith("(hover") })),
+    )
+    renderChat({ load: async () => [], send: vi.fn() })
+    await screen.findByRole("heading", { name: "Напиши первое сообщение" })
+    const button = screen.getByRole("button", { name: "Отправить сообщение" })
+    const { animate } = stubAnimate(button.firstElementChild!)
+
+    fireEvent.pointerOver(button, { pointerType: "touch" })
+    fireEvent.pointerOver(button, { pointerType: "mouse" })
+
+    expect(animate).not.toHaveBeenCalled()
+  })
+
+  it("lets a reply that only the saved history has enter the chat once", async () => {
+    const question: ChatMessage = { ...assistantMessage, id: "user-2", role: "user", content: "Q" }
+    const saved: ChatMessage = { ...assistantMessage, id: "assistant-2", content: "Из истории" }
+    const user = userEvent.setup()
+    renderChat(
+      {
+        load: vi
+          .fn()
+          .mockResolvedValueOnce([assistantMessage])
+          .mockResolvedValueOnce([assistantMessage, question, saved]),
+        send: async () => undefined,
+      },
+      "  ",
+    )
+    await screen.findByText("Подготовка")
+
+    await user.type(screen.getByRole("textbox"), "Q{Enter}")
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Отправить сообщение" })).toBeEnabled(),
+    )
+
+    const reply = screen.getByText("Из истории").closest("article")!
+    expect(reply).toHaveAttribute("data-entering", "true")
+    // a display name without letters leaves a question mark in the avatar
+    expect(within(screen.getByRole("article", { name: "Вы" })).getByText("?")).toBeInTheDocument()
+    // the animations inside the message do not end its entrance
+    fireEvent.animationEnd(within(reply).getByText("Из истории"))
+    expect(reply).toHaveAttribute("data-entering", "true")
+    fireEvent.animationEnd(reply)
+    expect(reply).not.toHaveAttribute("data-entering")
+  })
+
+  it.each<[string, (done: ReturnType<typeof deferred<string | void>>) => void]>([
+    ["answers", (done) => done.resolve("Поздний ответ")],
+    ["fails", (done) => done.reject(new Error("closed"))],
+  ])("cancels the request when the chat closes and ignores how it %s", async (_, settle) => {
+    const reply = streamingTransport()
+    const { unmount } = renderChat(reply.transport)
+    await screen.findByText("Подготовка")
+    await userEvent.type(screen.getByRole("textbox"), "Вопрос{Enter}")
+    act(() => reply.onDelta("Начало"))
+
+    unmount()
+    expect(reply.signal?.aborted).toBe(true)
+    // what comes after that is dropped, and the history is not reloaded
+    reply.onDelta(" и конец")
+    settle(reply.done)
+    await new Promise((resolve) => setTimeout(resolve))
+
+    expect(reply.transport.load).toHaveBeenCalledOnce()
+  })
 })
+
+/** Streams a reply into a log that is scrolled to its end, so the log follows the reply. */
+async function streamAtTheEnd() {
+  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }))
+  const reply = streamingTransport()
+  renderChat(reply.transport)
+  await screen.findByText("Подготовка")
+  const log = screen.getByRole("log")
+  let height = 700
+  sizeLog(log, () => height)
+  log.scrollTop = 500
+  fireEvent.scroll(log)
+  await userEvent.type(screen.getByRole("textbox"), "Вопрос{Enter}")
+
+  function grow(by: number, delta: string) {
+    height += by
+    act(() => reply.onDelta(delta))
+  }
+  grow(60, "Начало ответа ")
+  expect(log.scrollTop).toBe(560)
+  return { log, reply, grow }
+}
+
+async function finishReply(reply: ReturnType<typeof streamingTransport>) {
+  reply.done.resolve()
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Отправить сообщение" })).toBeEnabled(),
+  )
+}
+
+/** Element.animate, which jsdom lacks, for one element; lists the animations it started. */
+function stubAnimate(element: Element) {
+  type FakeAnimation = { id: string; playState: AnimationPlayState; cancel: () => void }
+  const animations: FakeAnimation[] = []
+  const animate = vi.fn<
+    (keyframes: Keyframe[], options: KeyframeAnimationOptions) => FakeAnimation
+  >(() => {
+    const animation: FakeAnimation = { id: "", playState: "running", cancel: vi.fn() }
+    animations.push(animation)
+    return animation
+  })
+  Object.defineProperty(element, "animate", { value: animate })
+  return { animate, animations }
+}
