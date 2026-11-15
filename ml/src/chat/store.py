@@ -52,40 +52,20 @@ class ChatStore:
         try:
             rows = await self.pool.fetch(
                 """
-                WITH semantic AS (
-                    SELECT id, row_number() OVER (
-                        ORDER BY embedding <=> $1::vector, id
-                    ) AS rank
-                    FROM document_chunks
-                    ORDER BY rank
-                    LIMIT $2
-                ),
-                words AS (
-                    SELECT tsvector_to_array(to_tsvector('russian', $3)) AS terms
-                ),
-                lexical_scores AS (
-                    SELECT id, cardinality(ARRAY(
-                        SELECT term
-                        FROM unnest(words.terms) AS term
-                        WHERE term = ANY(tsvector_to_array(to_tsvector('russian', content)))
-                           OR (length(term) >= 4 AND strpos(lower(content), term) > 0)
-                    )) AS matches
-                    FROM document_chunks CROSS JOIN words
-                ),
-                lexical AS (
-                    SELECT id, row_number() OVER (ORDER BY matches DESC, id) AS rank
-                    FROM lexical_scores
-                    WHERE matches > 0
-                    ORDER BY rank
-                    LIMIT $2
+                WITH terms AS (
+                    SELECT term
+                    FROM unnest(tsvector_to_array(to_tsvector('russian', $3))) AS term
+                    WHERE length(term) >= 4
                 )
-                SELECT chunks.id, chunks.content
-                FROM semantic FULL JOIN lexical USING (id)
-                JOIN document_chunks AS chunks USING (id)
-                ORDER BY coalesce(lexical.rank = 1, false) DESC,
-                         coalesce(1.0 / (60 + semantic.rank), 0)
-                       + coalesce(1.0 / (60 + lexical.rank), 0) DESC,
-                         lexical.rank NULLS LAST, chunks.id
+                SELECT id, content
+                FROM document_chunks
+                ORDER BY (
+                    1 - (embedding <=> $1::vector) / 2
+                    + 0.3 * COALESCE((
+                        SELECT avg((strpos(lower(content), term) > 0)::int)
+                        FROM terms
+                    ), 0)
+                ) DESC, id
                 LIMIT $2
                 """,
                 embedding,
