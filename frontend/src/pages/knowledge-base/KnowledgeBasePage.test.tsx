@@ -37,6 +37,14 @@ const DOCUMENTS: DocumentSummary[] = [
 
 type DocumentsHandler = () => Response | Promise<Response>
 
+/** GET /api/documents/{id} of every document in the list: a heading and a line of text. */
+const documentHandlers = Object.fromEntries(
+  DOCUMENTS.map(({ id, title, category }) => [
+    `GET /api/documents/${id}`,
+    () => json({ title, category, text: `# ${title}\n\nТекст документа «${title}».` }),
+  ]),
+)
+
 async function renderKnowledgeBase(
   path = "/knowledge-base",
   documents: DocumentsHandler = () => json(DOCUMENTS),
@@ -44,6 +52,7 @@ async function renderKnowledgeBase(
   const fetchMock = mockApi({
     "GET /api/user": () => json(intern),
     "GET /api/documents": documents,
+    ...documentHandlers,
   })
   const app = renderApp(path)
   await screen.findByRole("heading", { level: 1, name: "База знаний" })
@@ -182,6 +191,7 @@ describe("KnowledgeBasePage", () => {
     })) as HTMLDialogElement
     expect(dialog.open).toBe(true)
     expect(router.state.location.search).toEqual({ doc: 2 })
+    expect(await within(dialog).findByText("Текст документа «Настройка окружения».")).toBeVisible()
 
     await user.click(within(dialog).getByRole("button", { name: "Закрыть" }))
 
@@ -215,6 +225,7 @@ describe("KnowledgeBasePage", () => {
       name: "К кому обратиться",
     })) as HTMLDialogElement
     expect(dialog.open).toBe(true)
+    expect(await within(dialog).findByText("Текст документа «К кому обратиться».")).toBeVisible()
 
     await user.keyboard("{Escape}")
     // jsdom does not close a modal dialog on Esc by itself

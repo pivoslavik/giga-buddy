@@ -7,7 +7,8 @@ import { MOCK_DOCUMENT_CATEGORIES, MOCK_DOCUMENTS } from "./mockDocuments.ts"
  * Fake backend for `npm run dev:mock`: answers the endpoints the frontend uses, so the login flow
  * can be clicked through without docker compose. It follows the backend contract:
  * POST /api/auth/login (#6, #36), GET /api/user (#9), POST /api/auth/refresh (#37),
- * POST /api/auth/logout and GET /api/documents (#13). Tokens live in memory until a restart.
+ * POST /api/auth/logout, GET /api/documents (#13) and GET /api/documents/{id} (#14).
+ * Tokens live in memory until a restart.
  */
 
 interface MockUser {
@@ -129,6 +130,20 @@ export function createMockApi({
     const url = new URL(req.url ?? "/", "http://mock")
     const path = url.pathname
 
+    // like #14: the title, the category and the markdown of one document
+    const documentId = /^\/api\/documents\/([^/]+)$/.exec(path)?.[1]
+    if (req.method === "GET" && documentId !== undefined) {
+      if (!accountOf(req)) return send(res, 401, { error: "unauthorized" })
+      if (!/^\d+$/.test(documentId)) {
+        return send(res, 400, { error: "document id must be a positive integer" })
+      }
+
+      const document = MOCK_DOCUMENTS.find(({ id }) => id === Number(documentId))
+      if (!document) return send(res, 404, { error: "document not found" })
+      const { title, category, text } = document
+      return send(res, 200, { title, category, text })
+    }
+
     switch (`${req.method} ${path}`) {
       case "POST /api/auth/login": {
         const body = await readJson(req)
@@ -195,7 +210,14 @@ export function createMockApi({
         const documents = MOCK_DOCUMENTS.filter((document) =>
           categories.includes(document.category),
         )
-        return send(res, 200, documents.slice(0, Number(amount)))
+        // the cards go without the text
+        const cards = documents.map(({ id, title, description, category }) => ({
+          id,
+          title,
+          description,
+          category,
+        }))
+        return send(res, 200, cards.slice(0, Number(amount)))
       }
 
       default:

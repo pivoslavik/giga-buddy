@@ -1,5 +1,5 @@
-import { queryOptions } from "@tanstack/react-query"
-import { apiFetch } from "../../shared/api/client"
+import { queryOptions, skipToken } from "@tanstack/react-query"
+import { apiFetch, ApiError } from "../../shared/api/client"
 
 /** The `document_category` enum of the database (#13), in the order the knowledge base shows it. */
 export const DOCUMENT_CATEGORIES = [
@@ -26,6 +26,11 @@ export const DOCUMENT_CATEGORY_LABELS: Record<DocumentCategory, string> = {
 
 export function isDocumentCategory(value: string): value is DocumentCategory {
   return (DOCUMENT_CATEGORIES as readonly string[]).includes(value)
+}
+
+/** The name of a category; one the frontend does not know yet is shown as «Другое». */
+export function documentCategoryLabel(category: string) {
+  return isDocumentCategory(category) ? DOCUMENT_CATEGORY_LABELS[category] : "Другое"
 }
 
 /**
@@ -68,3 +73,85 @@ export const documentsQueryOptions = queryOptions({
   // the page shows the error right away with a button to try again
   retry: false,
 })
+
+/**
+ * A whole document from GET /api/documents/{id} (#14). The response has no id, the request
+ * adds it, so the document can be linked to. `text` is the markdown of the document.
+ */
+export interface DocumentDetails {
+  id: number
+  title: string
+  category: string
+  text: string
+}
+
+export function documentPath(id: number) {
+  return `/api/documents/${id}`
+}
+
+export async function fetchDocument(id: number, signal?: AbortSignal): Promise<DocumentDetails> {
+  const document = await apiFetch<Partial<Omit<DocumentDetails, "id">> | undefined>(
+    documentPath(id),
+    { signal },
+  )
+  if (typeof document?.title !== "string" || typeof document.text !== "string") {
+    throw new Error("Expected a document with a title and a text")
+  }
+  return {
+    id,
+    title: document.title,
+    category: String(document.category ?? ""),
+    text: document.text,
+  }
+}
+
+/**
+ * Which document to show: the one with this id, or the one with this title. A page knows the title
+ * of a document it links to, like «Первые шаги» on the main page, but not its id in the database.
+ */
+export type DocumentRef = { id: number } | { title: string }
+
+const normalizeTitle = (title: string) => title.trim().toLocaleLowerCase("ru").replaceAll("ё", "е")
+
+/**
+ * The document with the given title. The integration lets a model name the documents, after their
+ * own heading as a rule, so the title may come refined: «Первые шаги стажёра» counts as
+ * «Первые шаги» when no document has exactly that title.
+ */
+export function findDocumentByTitle(documents: DocumentSummary[], title: string) {
+  const wanted = normalizeTitle(title)
+  return (
+    documents.find((document) => normalizeTitle(document.title) === wanted) ??
+    documents.find((document) => normalizeTitle(document.title).includes(wanted))
+  )
+}
+
+/**
+ * Loads a document; without one the query waits. A document asked by its title is looked up in
+ * the list of the knowledge base first (the cached one, if it is fresh); when there is no such
+ * document, the query fails with a 404 like an unknown id does.
+ */
+export function documentQueryOptions(ref: DocumentRef | undefined) {
+  return queryOptions({
+    queryKey: ["documents", "detail", ref ?? null],
+    queryFn:
+      ref === undefined
+        ? skipToken
+        : async ({ client, signal }): Promise<DocumentDetails> => {
+            if ("id" in ref) return fetchDocument(ref.id, signal)
+
+            const documents = await client.fetchQuery(documentsQueryOptions)
+            const summary = findDocumentByTitle(documents, ref.title)
+            if (!summary) throw new ApiError(404, `There is no document titled «${ref.title}»`)
+            return client.fetchQuery(documentQueryOptions({ id: summary.id }))
+          },
+    staleTime: 5 * 60 * 1000,
+    // the modal shows the error right away with a button to try again
+    retry: false,
+  })
+}
+
+/** Whether the document is missing: deleted, never added or asked by a wrong id. */
+export function isDocumentNotFound(error: unknown) {
+  return error instanceof ApiError && (error.status === 404 || error.status === 400)
+}

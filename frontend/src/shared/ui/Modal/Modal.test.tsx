@@ -89,4 +89,28 @@ describe("Modal", () => {
     rerender(<Modal open={false} title="Вход в AI Buddy" onClose={() => {}} />)
     expect(dialog.open).toBe(false)
   })
+
+  it("starts from the close button even when a toolbar comes before it", async () => {
+    const { dialog, onClose } = renderModal({
+      toolbar: <a href="/docs">Открыть в новой вкладке</a>,
+    })
+
+    const close = screen.getByRole("button", { name: "Закрыть" })
+    expect(close).toHaveFocus()
+    expect(screen.getByRole("link", { name: "Открыть в новой вкладке" })).toBeInTheDocument()
+
+    await userEvent.click(close)
+    expect(dialog.open).toBe(false)
+    expect(onClose).toHaveBeenCalledOnce()
+  })
+
+  it("opens once more at the top of its content", () => {
+    const { dialog, rerender } = renderModal()
+    dialog.scrollTop = 300
+
+    rerender(<Modal open={false} title="Вход в AI Buddy" onClose={() => {}} />)
+    rerender(<Modal open title="Вход в AI Buddy" onClose={() => {}} />)
+
+    expect(dialog.scrollTop).toBe(0)
+  })
 })

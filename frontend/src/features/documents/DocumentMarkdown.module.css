@@ -1,0 +1,303 @@
+.markdown {
+  --font-mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
+
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-wrap: break-word;
+}
+
+.markdown :where(h3, h4, h5, h6, p, ul, ol, pre, blockquote, hr, table, figure) {
+  margin: 0;
+}
+
+.markdown > * + *,
+.markdown li > * + * {
+  margin-top: 12px;
+}
+
+/* a heading opens a section: more room above it than below */
+.markdown > * + :is(h3, h4, h5, h6) {
+  margin-top: 32px;
+}
+
+.markdown > :is(h3, h4, h5, h6) + * {
+  margin-top: 8px;
+}
+
+.markdown :is(h3, h4, h5, h6) {
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.markdown h3 {
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+
+.markdown h4 {
+  font-size: 18px;
+}
+
+.markdown h5 {
+  font-size: 16px;
+}
+
+.markdown h6 {
+  color: var(--color-text-secondary);
+  font-size: 15px;
+}
+
+.markdown :is(strong, b) {
+  font-weight: 750;
+}
+
+.markdown a {
+  color: #6b3fd4;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: rgb(107 63 212 / 0.35);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.15s ease;
+}
+
+.markdown a:hover {
+  text-decoration-color: currentColor;
+}
+
+.markdown :is(ul, ol) {
+  padding-left: 26px;
+}
+
+.markdown li + li,
+.markdown li > :is(ul, ol) {
+  margin-top: 6px;
+}
+
+.markdown li::marker {
+  color: var(--color-accent-purple);
+  font-weight: 700;
+}
+
+.markdown :global(.contains-task-list) {
+  padding-left: 0;
+}
+
+.markdown :global(.task-list-item) {
+  list-style: none;
+}
+
+.markdown :global(.task-list-item) input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0 10px 0 0;
+  accent-color: var(--color-accent-purple);
+  vertical-align: -2px;
+}
+
+.markdown :not(pre) > code {
+  padding: 0.1em 0.4em;
+  border-radius: 6px;
+  background: var(--color-soft-purple);
+  color: #43297f;
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  font-weight: 600;
+  box-decoration-break: clone;
+}
+
+.markdown hr {
+  height: 0;
+  margin-block: 28px;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.markdown img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-s);
+}
+
+/* code block */
+
+.codeBlock {
+  position: relative;
+}
+
+.pre {
+  padding: 18px 64px 18px 20px;
+  overflow-x: auto;
+  border-radius: var(--radius-s);
+  background: #262838;
+  color: #f1f2f8;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.8;
+  white-space: pre;
+  scrollbar-color: #50536b transparent;
+}
+
+.pre code {
+  display: block;
+  width: max-content;
+  min-width: 100%;
+  counter-reset: line;
+  font: inherit;
+}
+
+.line {
+  display: block;
+}
+
+.line::before {
+  display: inline-block;
+  min-width: 2ch;
+  margin-right: 20px;
+  color: #74778f;
+  content: counter(line);
+  counter-increment: line;
+  text-align: right;
+  user-select: none;
+}
+
+.copy {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #b3b6cc;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.copy:hover {
+  background: rgb(255 255 255 / 0.08);
+  color: #ffffff;
+}
+
+.copy:focus-visible {
+  outline: 2px solid #b79bff;
+  outline-offset: 1px;
+}
+
+.copy svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* lies over the end of the first line for a moment, so it needs a background of its own */
+.copyStatus {
+  position: absolute;
+  top: 14px;
+  right: 52px;
+  max-width: calc(100% - 72px);
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  background: #3d4058;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 28px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  animation: status-in 0.15s ease-out;
+}
+
+@keyframes status-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.copyStatus:empty {
+  display: none;
+}
+
+/* note */
+
+.note {
+  display: flex;
+  gap: 14px;
+  padding: 16px 20px 16px 16px;
+  border: 1px solid #e3d7fb;
+  border-radius: var(--radius-s);
+  background: #f7f2ff;
+}
+
+.noteIcon {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  color: var(--color-accent-purple);
+}
+
+.noteText {
+  min-width: 0;
+}
+
+.noteText > * + * {
+  margin-top: 8px;
+}
+
+/* table */
+
+.tableScroll {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-s);
+}
+
+.tableScroll:focus-visible {
+  outline: 2px solid var(--color-accent-purple);
+  outline-offset: 2px;
+}
+
+.tableScroll table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.tableScroll :is(th, td) {
+  min-width: 12ch;
+  padding: 10px 14px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.tableScroll th {
+  background: var(--color-field);
+  font-weight: 750;
+}
+
+.tableScroll tr + tr :is(td, th),
+.tableScroll thead + tbody tr :is(td, th) {
+  border-top: 1px solid var(--color-border);
+}
+
+@media (max-width: 480px) {
+  .markdown {
+    font-size: 15px;
+  }
+
+  .markdown h3 {
+    font-size: 20px;
+  }
+
+  .pre {
+    font-size: 13px;
+  }
+}
