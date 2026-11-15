@@ -30,6 +30,7 @@ class Database:
             cur.execute("""
                 SELECT id, title, description, text, category,google_document_id, source_modified_at 
                 FROM documents
+                WHERE google_document_id NOT LIKE 'demo:%'
                 """)
             return cur.fetchall()
 
