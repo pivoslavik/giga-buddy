@@ -6,7 +6,6 @@ from openai.types.chat import ChatCompletionMessageParam
 
 from ..documents.embeddings import Embeddings
 from .model_api_manager import ModelAPIError, ModelAPIManager, build_chat_messages
-from .settings import read_context_limit
 from .store import ChatStore
 
 UPSTREAM_ERRORS = (APIError, httpx.HTTPError, TimeoutError, ValueError)
@@ -22,13 +21,19 @@ class EmptyMessage(Exception):
 
 class ChatService:
     def __init__(
-        self, store: ChatStore, embeddings: Embeddings, model_api: ModelAPIManager
+        self,
+        store: ChatStore,
+        embeddings: Embeddings,
+        model_api: ModelAPIManager,
+        *,
+        messages_to_context: int,
+        documents_to_context: int,
     ) -> None:
         self.store = store
         self.embeddings = embeddings
         self.model_api = model_api
-        self.messages_to_context = read_context_limit("MESSAGES_TO_CONTEXT", 10)
-        self.documents_to_context = read_context_limit("DOCUMENTS_TO_CONTEXT", 5)
+        self.messages_to_context = messages_to_context
+        self.documents_to_context = documents_to_context
 
     async def generate_reply(self, user_id: int, message_id: int) -> str:
         messages = await self._prepare_messages(user_id, message_id)
@@ -47,7 +52,7 @@ class ChatService:
         self, user_id: int, message_id: int
     ) -> list[ChatCompletionMessageParam]:
         history = await self.store.get_history(
-            user_id, message_id, previous_limit=self.messages_to_context
+            user_id, message_id, limit=self.messages_to_context
         )
         if not history:
             raise MessageNotFound
@@ -56,12 +61,10 @@ class ChatService:
         if not question.strip():
             raise EmptyMessage
 
-        chunks = []
-        if self.documents_to_context:
-            [embedding] = await self.embeddings.encode([question], prefix="query")
-            chunks = await self.store.find_relevant_chunks(
-                embedding, limit=self.documents_to_context
-            )
+        [embedding] = await self.embeddings.encode([question], prefix="query")
+        chunks = await self.store.find_relevant_chunks(
+            embedding, limit=self.documents_to_context
+        )
         return build_chat_messages(history, chunks)
 
     async def _stream_reply(

@@ -22,7 +22,7 @@ class ChatStore:
         self.pool = pool
 
     async def get_history(
-        self, user_id: int, message_id: int, *, previous_limit: int
+        self, user_id: int, message_id: int, *, limit: int
     ) -> list[ChatMessage]:
         try:
             rows = await self.pool.fetch(
@@ -39,7 +39,7 @@ class ChatStore:
                 """,
                 user_id,
                 message_id,
-                previous_limit + 1,
+                limit,
             )
         except DATABASE_ERRORS as exc:
             raise DatabaseError("Could not load chat history") from exc

@@ -1,8 +1,9 @@
 import asyncio
-import os
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
+
+from ..config import Config
 
 MODEL_NAME = "intfloat/multilingual-e5-small"
 DIMENSION = 384
@@ -33,10 +34,9 @@ class Embeddings:
         self._executor = ThreadPoolExecutor(max_workers=len(models))
 
     @classmethod
-    async def load(cls) -> "Embeddings":
-        max_waiting = int(os.getenv("ML_INFERENCE_MAX_WAITING", "2"))
-        if max_waiting < 0:
-            raise ValueError("ML_INFERENCE_MAX_WAITING must be nonnegative")
+    async def load(cls, *, max_waiting: int | None = None) -> "Embeddings":
+        if max_waiting is None:
+            max_waiting = Config.inference_max_waiting_from_env()
         model = await asyncio.to_thread(load_model)
         return cls([model], max_waiting)
 
