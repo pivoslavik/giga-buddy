@@ -31,12 +31,14 @@ func (h *Handler) handleLogin(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": apperrors.ErrInvalidLoginCredentials,
 		})
+		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(userDB.PasswordHash), []byte(request.Password)); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": apperrors.ErrInvalidLoginCredentials,
 		})
+		return
 	}
 
 	if err := setAccessToken(c, userDB.ID, h.jwtSecret); err != nil {
