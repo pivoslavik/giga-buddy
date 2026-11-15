@@ -30,6 +30,31 @@ describe("chat transport", () => {
     expect(fetch).toHaveBeenCalledWith("https://api.example.com/api/chat", expect.anything())
   })
 
+  it("reveals a reply progressively when the entire stream arrives in one read", async () => {
+    const first = "Начало ответа. "
+    const rest = "Продолжение ответа."
+    const onDelta = vi.fn()
+    const reply = send(
+      eventStream(
+        "event: token",
+        `data: ${JSON.stringify({ delta: first })}`,
+        "",
+        "event: token",
+        `data: ${JSON.stringify({ delta: rest })}`,
+        "",
+        "event: done",
+        `data: ${JSON.stringify({ response: first + rest })}`,
+        "",
+      ),
+      onDelta,
+    )
+
+    await vi.waitFor(() => expect(onDelta).toHaveBeenCalled(), { interval: 1 })
+    expect(onDelta.mock.calls).toEqual([[first]])
+    await expect(reply).resolves.toBe(first + rest)
+    expect(onDelta.mock.calls).toEqual([[first], [rest]])
+  })
+
   it.each([
     ["JSON", Response.json({ response: "Ответ" })],
     ["no body", new Response(null, { headers: { "Content-Type": "text/event-stream" } })],

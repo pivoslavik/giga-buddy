@@ -2,8 +2,8 @@
 
 ### Локальный запуск
 
-`make up` запускает основные сервисы Docker Compose.
-`make demo` запускает стек с профилем `mcp-demo`, включая `buddy-mcp`.
+`make up` запускает все сервисы Docker Compose, включая `buddy-mcp`.
+`make demo` — синоним `make up` для запуска демо.
 Если порт 80 занят, добавьте `NGINX_PORT=8081` в `.env` и откройте [http://127.0.0.1:8081](http://127.0.0.1:8081/).
 `make down` останавливает стек и сохраняет тома.
 `make down-v` останавливает стек и удаляет тома вместе с данными PostgreSQL.
@@ -47,3 +47,7 @@ secrets/google_drive_credentials.json
 Docker Compose mounts the credentials file into the integration container automatically.
 
 Do not commit the credentials file.
+
+Downloaded documents are read from separate temporary subdirectories of
+`documents/` and removed after reading (or if downloading fails). Drive names
+and IDs are never used as local paths.

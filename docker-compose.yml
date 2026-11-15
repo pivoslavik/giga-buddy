@@ -52,7 +52,6 @@ services:
       - ml-postgres
 
   buddy-mcp:
-    profiles: [mcp-demo]
     build: ./ml
     command: ["python", "-m", "ml.src.mcp.server"]
     environment:

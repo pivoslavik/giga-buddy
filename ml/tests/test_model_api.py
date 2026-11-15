@@ -117,7 +117,8 @@ def tool_session(*names):
 
 
 @pytest.mark.anyio
-async def test_tool_selection_filters_tools_and_returns_model_reply(api):
+@pytest.mark.parametrize("stream_final", [False, True])
+async def test_tool_selection_preserves_results_for_final_reply(api, stream_final):
     manager, create = api
     session = tool_session("knowledge_search", "access_submit")
     session.call_tool.return_value = SimpleNamespace(
@@ -128,7 +129,10 @@ async def test_tool_selection_filters_tools_and_returns_model_reply(api):
         completion("Ответ с источником"),
     ]
     messages = [{"role": "system", "content": "System"}]
-    assert await manager.collect_tool_results(messages, session) == "Ответ с источником"
+    reply = await manager.collect_tool_results(
+        messages, session, stream_final=stream_final
+    )
+    assert reply == (None if stream_final else "Ответ с источником")
     session.call_tool.assert_awaited_once_with("knowledge_search", {})
     tools = create.await_args_list[0].kwargs["tools"]
     assert [tool["function"]["name"] for tool in tools] == ["knowledge_search"]

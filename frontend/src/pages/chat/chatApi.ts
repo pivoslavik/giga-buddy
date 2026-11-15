@@ -46,16 +46,33 @@ export const chatTransport: ChatTransport = {
     }
 
     let finalResponse: string | undefined
+    let nextPaint = 0
+    async function showText(text: string) {
+      const characters = Array.from(text)
+      // A network read can contain several events or one large delta.
+      const batchSize = Math.max(24, Math.ceil(characters.length / 40))
+      for (let start = 0; start < characters.length; start += batchSize) {
+        const delay = nextPaint - performance.now()
+        if (delay > 0) await new Promise<void>((resolve) => setTimeout(resolve, delay))
+        if (signal.aborted) throw signal.reason
+        onDelta(characters.slice(start, start + batchSize).join(""))
+        nextPaint = performance.now() + 24
+      }
+    }
+
     await readEventStream(response.body, ({ type, data }) => {
       switch (type) {
         case "token": {
           const { delta } = JSON.parse(data)
-          if (typeof delta === "string") onDelta(delta)
+          if (typeof delta === "string") return showText(delta)
           break
         }
         case "done": {
           const { response } = JSON.parse(data)
-          if (typeof response === "string") finalResponse = response
+          if (typeof response === "string") {
+            finalResponse = response
+            if (!nextPaint) return showText(response)
+          }
           break
         }
         case "error":

@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import type { SubmitEvent } from "react"
 import { ArrowRightIcon } from "../../shared/ui/icons/icons"
 import { Logo } from "../../shared/ui/Logo/Logo"
+import { PageTitle } from "../../shared/ui/PageTitle/PageTitle"
 import type { ChatMessage as Message, ChatTransport } from "./chatApi"
 import { ChatEmptyState } from "./ChatEmptyState"
 import { ChatMessage } from "./ChatMessage"
@@ -358,10 +359,11 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
   return (
     <div className={styles.chat}>
       <div className={styles.content}>
-        <div className={styles.intro}>
-          <h1>Чат с AI Buddy</h1>
-          <p>Задавай вопросы о проекте, задачах и работе команды</p>
-        </div>
+        <PageTitle
+          className={styles.intro}
+          title="Чат с AI Buddy"
+          subtitle="Задавай вопросы о проекте, задачах и работе команды"
+        />
 
         <section className={styles.panel} aria-label="Чат с AI Buddy">
           <header className={styles.panelHeader}>

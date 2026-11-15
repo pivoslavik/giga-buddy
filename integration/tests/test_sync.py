@@ -1,7 +1,11 @@
 from datetime import UTC, datetime
+from pathlib import Path
 from unittest.mock import Mock, call
 
+import pytest
+
 from src.db import Database, DocumentsRow
+from src.loader import google_drive
 from src.model.api import ModelAPIManager, ModelResponse
 from src.models import DocumentSyncRequest
 from src.monitor.differences import (
@@ -76,10 +80,12 @@ def test_sync_writes_changes_and_notifies_ml(tmp_path, monkeypatch):
     ]
     pipeline.sync_documents(model, loader, db, tmp_path, documents, "http://ml")
 
-    assert loader.load_document.call_args_list == [
-        call("added", tmp_path / "new.txt"),
-        call("modified", tmp_path / "updated.txt"),
-    ]
+    downloads = loader.load_document.call_args_list
+    assert [download.args[0] for download in downloads] == ["added", "modified"]
+    for download in downloads:
+        path = download.args[1]
+        assert path.parent.parent == tmp_path
+        assert not path.parent.exists()
     assert model.send_prompt.call_args_list == [
         call("Text for added"),
         call("Text for modified"),
@@ -110,3 +116,56 @@ def test_sync_writes_changes_and_notifies_ml(tmp_path, monkeypatch):
         call.db.process_delete_request("deleted"),
         call.notify("http://ml", 13, DocumentStatus.DELETED),
     ]
+
+
+@pytest.mark.parametrize("name", ["../outside.txt", "absolute", "linked.txt"])
+def test_drive_names_cannot_escape_download_directory(tmp_path, monkeypatch, name):
+    documents_dir = tmp_path / "documents"
+    documents_dir.mkdir()
+    outside = tmp_path / "outside.txt"
+    outside.write_text("Original content")
+    (documents_dir / "linked.txt").symlink_to(outside)
+    if name == "absolute":
+        name = str(outside)
+
+    def create_download(file, request):
+        assert documents_dir.resolve() in Path(file.name).resolve().parents
+        file.write(b"Downloaded text")
+        return Mock(next_chunk=Mock(return_value=(None, True)))
+
+    monkeypatch.setattr(google_drive, "MediaIoBaseDownload", create_download)
+    model = Mock(
+        send_prompt=Mock(return_value=ModelResponse("Title", "Summary", "company"))
+    )
+    document = ChangedDocument("../untrusted-id", NEW_TIME, name, DocumentStatus.ADDED)
+
+    request = pipeline.get_sync_request(
+        model,
+        google_drive.GoogleDocumentLoader(Mock()),
+        Mock(),
+        documents_dir,
+        document,
+    )
+
+    assert request.text == "Downloaded text"
+    assert request.google_document_id == "../untrusted-id"
+    assert outside.read_text() == "Original content"
+    assert list(documents_dir.iterdir()) == [documents_dir / "linked.txt"]
+
+
+def test_failed_download_removes_partial_file(tmp_path):
+    documents_dir = tmp_path / "documents"
+
+    def download(drive_id, path):
+        path.write_text("Partial content")
+        raise TimeoutError("Download interrupted")
+
+    loader = Mock(load_document=Mock(side_effect=download))
+    model = Mock()
+    document = ChangedDocument("file-1", NEW_TIME, "file.txt", DocumentStatus.ADDED)
+
+    with pytest.raises(TimeoutError):
+        pipeline.get_sync_request(model, loader, Mock(), documents_dir, document)
+
+    assert list(documents_dir.iterdir()) == []
+    model.send_prompt.assert_not_called()
