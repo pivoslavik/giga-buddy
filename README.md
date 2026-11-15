@@ -59,7 +59,7 @@ docker compose exec -T postgres sh -c 'psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_
 | Backend | Go 1.26.7 в [go.mod](backend/go.mod), образ сборки Go 1.27 |
 | Frontend | Node.js 24, React 19.3.1, Vite 8.3.7, [package-lock.json](frontend/package-lock.json) |
 | ML и Buddy MCP | Python 3.12, FastAPI 0.162.2, MCP 1.23.1, [requirements.txt](ml/requirements.txt) |
-| Google Drive | Python 3.13 в Docker, Google API Client 2.201.0, [requirements.txt](integration/requirements.txt) |
+| Google Drive | Python 3.12 в Docker, Google API Client 2.201.0, [requirements.txt](integration/requirements.txt) |
 | Хранилище и прокси | PostgreSQL 17 с pgvector 0.8.2, migrate 4.18.3, nginx 1.30.6, [Docker Compose](docker-compose.yml) |
 
 ### Внешние API и ключи
