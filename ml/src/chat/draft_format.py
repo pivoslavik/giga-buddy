@@ -34,7 +34,13 @@ def format_draft(tool: str, draft: dict) -> str:
         lines.append(f"- {label} — {value}")
     source = draft.get("source")
     if source:
-        lines.extend(["", f"Инструкция — [{source['section']}]({source['url']})"])
+        section = source["section"]
+        if source.get("url"):
+            lines.extend(["", f"Инструкция — [{section}]({source['url']})"])
+        else:
+            lines.extend(
+                ["", f"**Тестовая инструкция — {section}**", "", source["text"]]
+            )
     lines.extend(
         [
             "",

@@ -1,12 +1,9 @@
 import re
 
-BASE = "https://confluence.demo.example/wiki/spaces"
-
 PAGES = {
     "onboarding": (
         "TEAM",
         "Первые шаги команды",
-        "checklist",
         "Чек-лист стажёра",
         "Проверь доступ к базе команды, подготовь первый PR и узнай порядок оформления отсутствия.",
         None,
@@ -14,7 +11,6 @@ PAGES = {
     "access": (
         "TEAM",
         "Доступ к базе команды",
-        "request",
         "Запросить доступ",
         "К пространству CAT-DEV можно запросить доступ на чтение. Укажи рабочее обоснование. Согласует наставник.",
         None,
@@ -22,7 +18,6 @@ PAGES = {
     "first-pr": (
         "TEAM",
         "Первый PR",
-        "review",
         "Перед запросом ревью",
         "Проверь CI для текущего commit и выбери ревьюера из списка команды.",
         None,
@@ -30,7 +25,6 @@ PAGES = {
     "ci": (
         "TEAM",
         "Диагностика CI",
-        "failed-tests",
         "Если упали тесты",
         "Открой лог упавшей проверки, исправь причину и дождись CI для нового commit.",
         None,
@@ -38,7 +32,6 @@ PAGES = {
     "absence": (
         "TEAM",
         "Как оформить отсутствие",
-        "short-leave",
         "Краткое отсутствие",
         "Укажи точные начало и конец с часовым поясом. Согласует руководитель команды.",
         None,
@@ -46,7 +39,6 @@ PAGES = {
     "repository-access": (
         "TEAM",
         "Доступы команды",
-        "repository",
         "Доступ к репозиторию",
         "Для первой задачи можно запросить доступ contributor к репозиторию buddy-demo.",
         None,
@@ -54,7 +46,6 @@ PAGES = {
     "cat-dev": (
         "CAT-DEV",
         "Материалы команды CAT",
-        "examples",
         "Примеры задач",
         "Синтетические примеры задач команды CAT.",
         2,
@@ -66,7 +57,7 @@ def get_page(page_id: str, user_id: int) -> dict | None:
     page = PAGES.get(page_id)
     if page is None:
         return None
-    space, title, anchor, section, text, allowed_user = page
+    space, title, section, text, allowed_user = page
     if allowed_user is not None and allowed_user != user_id:
         return None
     return {
@@ -77,7 +68,7 @@ def get_page(page_id: str, user_id: int) -> dict | None:
         "section": section,
         "version": 1,
         "updated_at": "2026-11-01T09:00:00Z",
-        "url": f"{BASE}/{space}/pages/{page_id}#{anchor}",
+        "url": None,
         "text": text,
     }
 

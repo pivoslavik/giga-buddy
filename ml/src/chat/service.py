@@ -14,6 +14,7 @@ UPSTREAM_ERRORS = (APIError, httpx.HTTPError, TimeoutError, ValueError)
 CONFIRMATION = re.compile(
     r"подтверждаю ([a-f0-9]{32}) ([1-9][0-9]{0,8})", re.IGNORECASE
 )
+DEMO_APPROVAL = re.compile(r"демо согласовать (ACC-[a-f0-9]{32})", re.IGNORECASE)
 SUBMISSION_MESSAGES = {
     "unavailable": "Черновик недоступен или его версия изменилась. Подготовь новый.",
     "submission_disabled": "Отправка тестовых заявок отключена.",
@@ -70,6 +71,22 @@ class ChatService:
         if not question.strip():
             raise EmptyMessage
 
+        approval = DEMO_APPROVAL.fullmatch(question.strip())
+        if approval and self.buddy_mcp is not None:
+            request_id = "ACC-" + approval[1][4:].lower()
+            try:
+                result = await self.buddy_mcp.approve_demo_access(user_id, request_id)
+            except (*UPSTREAM_ERRORS, ExceptionGroup) as exc:
+                raise ModelAPIError("MCP demo approval failed") from exc
+            if result.get("status") == "approved":
+                return (
+                    [],
+                    f"Тестовая заявка `{request_id}` согласована. Это имитация согласования.",
+                )
+            if result.get("status") == "unavailable":
+                return [], "Тестовая заявка недоступна для согласования."
+            return [], "Не удалось согласовать тестовую заявку."
+
         confirmation = CONFIRMATION.fullmatch(question.strip())
         if self.buddy_mcp is not None and confirmation:
             action_id, version = confirmation.groups()
@@ -81,6 +98,8 @@ class ChatService:
                 raise ModelAPIError("MCP submission failed") from exc
             status = result.get("status")
             request_id = result.get("request_id")
+            if status == "approved" and request_id:
+                return [], f"Тестовая заявка `{request_id}` уже согласована."
             if status == "pending_approval" and request_id:
                 return (
                     [],

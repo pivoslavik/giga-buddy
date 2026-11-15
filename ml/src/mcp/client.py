@@ -12,6 +12,7 @@ CHAT_TOOLS = {
     "access_get_request",
     "pull_request_inspect",
     "review_prepare",
+    "review_get_status",
     "absence_options",
     "absence_prepare",
     "absence_get_request",
@@ -58,6 +59,17 @@ class BuddyMCPClient:
         async with self.connect(user_id, submit=True) as session:
             result = await session.call_tool(
                 f"{kind}_submit", {"action_id": action_id, "version": version}
+            )
+        if result.isError or result.structuredContent is None:
+            return {"status": "tool_failed"}
+        return result.structuredContent
+
+    async def approve_demo_access(self, user_id: int, request_id: str) -> dict:
+        if not self.submit_token:
+            return {"status": "submission_disabled"}
+        async with self.connect(user_id, submit=True) as session:
+            result = await session.call_tool(
+                "access_demo_approve", {"request_id": request_id}
             )
         if result.isError or result.structuredContent is None:
             return {"status": "tool_failed"}

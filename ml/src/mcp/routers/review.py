@@ -36,8 +36,17 @@ async def review_submit(
     )
 
 
+async def review_get_status(
+    pr_number: Annotated[int, Field(gt=0, description="Номер PR, например 42")],
+    ctx: Context,
+) -> dict[str, object]:
+    """Прочитать сохранённые запросы ревью пользователя и их статусы по номеру PR."""
+    return demo(**await actions(ctx).get_review_requests(caller(ctx), pr_number))
+
+
 TOOLS = (
     pull_request_inspect,
     review_prepare,
     review_submit,
+    review_get_status,
 )

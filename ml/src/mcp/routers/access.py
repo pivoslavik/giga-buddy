@@ -47,9 +47,17 @@ async def access_get_request(request_id: str, ctx: Context) -> dict[str, object]
     return demo(**await actions(ctx).get(caller(ctx), "access", request_id))
 
 
+async def access_demo_approve(request_id: str, ctx: Context) -> dict[str, object]:
+    """Сымитировать согласование собственной тестовой заявки на доступ."""
+    return demo(
+        **await actions(ctx).approve_access(caller(ctx, submit=True), request_id)
+    )
+
+
 TOOLS = (
     access_inspect,
     access_prepare,
     access_submit,
     access_get_request,
+    access_demo_approve,
 )

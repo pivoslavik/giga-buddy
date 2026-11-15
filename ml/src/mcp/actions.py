@@ -39,7 +39,7 @@ def inspect_pull_request(user_id: int, pr_number: int) -> dict:
         "pr_number": pr_number,
         **pr,
         "allowed_reviewers": [REVIEWER],
-        "url": f"https://git.demo.example/buddy-demo/pull/{pr_number}",
+        "url": None,
         "source": get_page("ci" if pr["ci"] == "failed" else "first-pr", user_id),
     }
 
@@ -182,6 +182,49 @@ class DemoActions:
                 action_id,
             )
             return {"request_id": external_id, "status": status}
+
+    async def get_review_requests(self, owner: int, pr_number: int) -> dict:
+        rows = await self.pool.fetch(
+            """
+            SELECT external_id, status, payload->>'commit' AS commit,
+                   payload->>'reviewer' AS reviewer
+            FROM demo_actions
+            WHERE owner = $1 AND kind = 'review' AND external_id IS NOT NULL
+              AND payload->>'pr_number' = $2
+            ORDER BY external_id
+            """,
+            owner,
+            str(pr_number),
+        )
+        pr = PULL_REQUESTS.get(pr_number)
+        return {
+            "pr_number": pr_number,
+            "current_commit": pr["commit"] if pr else None,
+            "requests": [
+                {
+                    "request_id": row["external_id"],
+                    "status": row["status"],
+                    "commit": row["commit"],
+                    "reviewer": row["reviewer"],
+                }
+                for row in rows
+            ],
+        }
+
+    async def approve_access(self, owner: int, request_id: str) -> dict:
+        status = await self.pool.fetchval(
+            """
+            UPDATE demo_actions SET status = 'approved'
+            WHERE owner = $1 AND kind = 'access' AND external_id = $2
+              AND status IN ('pending_approval', 'approved')
+            RETURNING status
+            """,
+            owner,
+            request_id,
+        )
+        if status is None:
+            return {"status": "unavailable"}
+        return {"request_id": request_id, "status": status}
 
     async def get_draft(self, owner: int, action_id: str) -> dict:
         row = await self.pool.fetchrow(
