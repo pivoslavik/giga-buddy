@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: "/", label: "Главная", exact: true },
   { to: "/profile", label: "Личный кабинет", exact: false },
   { to: "/chat", label: "Чат", exact: false },
+  { to: "/knowledge-base", label: "База знаний", exact: false },
 ] as const
 
 /** Header of the app pages: the logo, sections of the app and the current user. */
