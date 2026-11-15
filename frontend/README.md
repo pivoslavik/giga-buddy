@@ -9,8 +9,17 @@ npm ci
 npm run dev
 ```
 
-The dev server proxies `/api` to `API_PROXY_TARGET` (`http://localhost` by default, which is nginx
-from `docker compose up`). To work against a backend started locally, create `.env.local`:
+The frontend calls the API on its own origin, and every `/api/*` request is proxied to the backend
+with its method, path, query, headers, cookies and body:
+
+- `npm run dev` and `npm run preview` proxy it to `API_PROXY_TARGET` (`http://localhost`, port 80,
+  by default: nginx from `docker compose up`, which forwards to `backend:8080`). They add
+  `X-Forwarded-*` headers and drop the `Domain` of the cookies the backend sets, so the browser
+  keeps them for the dev host.
+- in docker compose and production, nginx ([nginx/default.conf](../nginx/default.conf)) proxies it
+  to `backend:8080` and passes the address of the browser in `X-Real-IP` and `X-Forwarded-For`.
+
+To work against a backend started locally, create `.env.local`:
 
 ```bash
 API_PROXY_TARGET=http://localhost:8080
@@ -40,7 +49,8 @@ MOCK_ACCESS_TOKEN_TTL_SECONDS=20
 ```
 
 Tokens are kept in memory until the dev server restarts; log out from the avatar menu in the
-header. The mock is never part of the production build.
+header. The knowledge base lists the documents of [mock/mockDocuments.ts](mock/mockDocuments.ts).
+The mock is never part of the production build.
 
 ## Scripts
 
@@ -49,6 +59,7 @@ header. The mock is never part of the production build.
 | `npm run dev`      | dev server with HMR                           |
 | `npm run dev:mock` | dev server with the mock API instead of proxy |
 | `npm run build`    | type-check and production build into `dist/`  |
+| `npm run preview`  | serves `dist/` with the same `/api` proxy     |
 | `npm run lint`     | ESLint                                        |
 | `npm run format`   | Prettier                                      |
 | `npm test`         | unit tests (Vitest + Testing Library, jsdom)  |
@@ -64,7 +75,7 @@ src/
   pages/           route components (landing, home, ...) and the layout of the app pages
   widgets/         blocks shared by pages: the header
   features/        user scenarios (auth, ...)
-  entities/        domain data and its queries (session, ...)
+  entities/        domain data and its queries (session, document)
   shared/api/      fetch wrapper for the backend
   shared/ui/       reusable components: Button, Modal, Logo, Avatar, PageTitle, icons
   index.css        design tokens and global styles
@@ -97,3 +108,15 @@ on `/welcome`; if it is still there, the menu says logging out failed.
 After logging in or out, call `refetchSession(queryClient)` so the guards see the new state.
 Invalidating the query is not enough: the guards use `ensureQueryData`, which keeps returning the
 cached value of a query nothing subscribes to.
+
+## Knowledge base
+
+`/knowledge-base` lists the documents from `GET /api/documents?amount=…&category=…` (#13). The
+backend wants `amount` and at least one `category`, and it can neither search nor skip documents,
+so the page asks once for the first 20 documents of every category. The search by title and
+description, the filter by category and the sorting by title run in the browser on them: switching
+them needs no request.
+
+A card is a link to `/knowledge-base?doc=<id>`, which opens the document in a modal over the list,
+so a document can be opened in a new tab or shared. Closing it opened from the list goes back in
+history; opened by its link, the list takes its place.

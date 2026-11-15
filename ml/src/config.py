@@ -21,6 +21,8 @@ class Config:
     messages_to_context: int
     documents_to_context: int
     inference_max_waiting: int
+    buddy_mcp_token: str = field(repr=False)
+    buddy_mcp_submit_token: str = field(repr=False)
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -36,6 +38,8 @@ class Config:
                 "DOCUMENTS_TO_CONTEXT", environ["DOCUMENTS_TO_CONTEXT"]
             ),
             inference_max_waiting=cls.inference_max_waiting_from_env(),
+            buddy_mcp_token=environ["BUDDY_MCP_TOKEN"],
+            buddy_mcp_submit_token=environ["BUDDY_MCP_SUBMIT_TOKEN"],
         )
 
     @staticmethod

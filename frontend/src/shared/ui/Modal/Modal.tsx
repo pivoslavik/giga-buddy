@@ -6,8 +6,14 @@ interface ModalProps {
   open: boolean
   /** Called once whenever the modal closes: close button, Esc, backdrop click or `open={false}`. */
   onClose: () => void
-  title: string
+  /** The heading, which also names the dialog for assistive tech. */
+  title: ReactNode
   description?: string
+  /**
+   * A bar over the title, next to the close button: where the content comes from and actions
+   * with it. It stays in place while a long content scrolls under it.
+   */
+  toolbar?: ReactNode
   className?: string
   children?: ReactNode
 }
@@ -16,12 +22,21 @@ interface ModalProps {
  * Modal built on the native <dialog>: the browser gives us the top layer, focus trapping,
  * Esc handling and an inert page behind it, so we only sync it with the `open` prop.
  *
- * On open the browser focuses the first focusable element, which is the close button.
+ * On open the close button gets the focus, even when the toolbar comes before it.
  * Mark another element with `data-autofocus` to start there instead, e.g. the first field
  * of a form. (React's `autoFocus` does not help: it focuses on mount, before the dialog opens.)
  */
-export function Modal({ open, onClose, title, description, className, children }: ModalProps) {
+export function Modal({
+  open,
+  onClose,
+  title,
+  description,
+  toolbar,
+  className,
+  children,
+}: ModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
+  const closeRef = useRef<HTMLButtonElement>(null)
   const pressStartedOnBackdrop = useRef(false)
   const titleId = useId()
   const descriptionId = useId()
@@ -32,7 +47,10 @@ export function Modal({ open, onClose, title, description, className, children }
 
     if (open && !dialog.open) {
       dialog.showModal()
-      dialog.querySelector<HTMLElement>("[data-autofocus]")?.focus()
+      // a modal opened once more starts from the top, not where its last content was scrolled to
+      dialog.scrollTop = 0
+      const autofocus = dialog.querySelector<HTMLElement>("[data-autofocus]") ?? closeRef.current
+      autofocus?.focus()
     }
     if (!open && dialog.open) dialog.close()
   }, [open])
@@ -55,6 +73,18 @@ export function Modal({ open, onClose, title, description, className, children }
     pressStartedOnBackdrop.current = false
   }
 
+  const closeButton = (
+    <button
+      ref={closeRef}
+      type="button"
+      className={styles.close}
+      aria-label="Закрыть"
+      onClick={requestClose}
+    >
+      <CloseIcon />
+    </button>
+  )
+
   return (
     <dialog
       ref={dialogRef}
@@ -65,10 +95,15 @@ export function Modal({ open, onClose, title, description, className, children }
       onMouseDown={handleMouseDown}
       onClick={handleClick}
     >
-      <div className={styles.content}>
-        <button type="button" className={styles.close} aria-label="Закрыть" onClick={requestClose}>
-          <CloseIcon />
-        </button>
+      <div className={toolbar ? `${styles.content} ${styles.withToolbar}` : styles.content}>
+        {toolbar ? (
+          <div className={styles.toolbar}>
+            {toolbar}
+            {closeButton}
+          </div>
+        ) : (
+          closeButton
+        )}
 
         <h2 id={titleId} className={styles.title}>
           {title}

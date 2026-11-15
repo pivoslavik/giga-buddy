@@ -3,9 +3,9 @@ from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 
-from ..config import Config
 
-MODEL_NAME = "intfloat/multilingual-e5-small"
+from ..config import Config
+from ..e5_model import OnnxModel, download_model
 DIMENSION = 384
 
 
@@ -18,9 +18,8 @@ class InferenceUnavailable(RuntimeError):
 
 
 def load_model():
-    from sentence_transformers import SentenceTransformer
-
-    return SentenceTransformer(MODEL_NAME)
+    model_path = os.getenv("ML_MODEL_PATH") or download_model()
+    return OnnxModel(model_path)
 
 
 class Embeddings:

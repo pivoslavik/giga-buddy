@@ -1,3 +1,8 @@
+<<<<<<< HEAD
+=======
+import logging
+import os
+>>>>>>> main
 from collections.abc import AsyncIterator
 from contextlib import AsyncExitStack, asynccontextmanager
 
@@ -9,6 +14,7 @@ from openai import AsyncOpenAI
 from pgvector.asyncpg import register_vector
 
 from ..health import health
+from .mcp.client import BuddyMCPClient
 from .chat import router as chat
 from .chat.model_api_manager import ModelAPIManager
 from .chat.service import ChatService
@@ -20,9 +26,26 @@ from .documents.embeddings import Embeddings
 from .documents.processor import DocumentProcessor
 
 
+class HealthCheckLogFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        if not isinstance(record.args, tuple) or len(record.args) != 5:
+            return True
+        _, method, path, _, status = record.args
+        return (method, path, status) != ("GET", "/health", 200)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     config = Config.from_env()
+    buddy_mcp = (
+        BuddyMCPClient(
+            mcp_url,
+            config.buddy_mcp_token,
+            config.buddy_mcp_submit_token
+        )
+        if mcp_url
+        else None
+    )
     async with asyncpg.create_pool(
         config.database_url,
         min_size=1,
@@ -54,6 +77,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                         ChatStore(pool),
                         embeddings,
                         model_api,
+                        buddy_mcp,
                         messages_to_context=config.messages_to_context,
                         documents_to_context=config.documents_to_context,
                     )
@@ -76,4 +100,5 @@ app.include_router(health.router)
 
 
 if __name__ == "__main__":
+    logging.getLogger("uvicorn.access").addFilter(HealthCheckLogFilter())
     uvicorn.run(app, host="0.0.0.0", port=8000)

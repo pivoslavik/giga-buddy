@@ -4,11 +4,20 @@ import { describe, expect, it } from "vitest"
 import { intern, json, mockApi, renderApp } from "../../test/app"
 import { FAQ, FIRST_STEPS } from "./homeContent"
 
-async function renderHome() {
-  mockApi({ "GET /api/user": () => json(intern) })
+type Handlers = Parameters<typeof mockApi>[0]
+
+async function renderHome(handlers: Handlers = {}) {
+  const fetchMock = mockApi({ "GET /api/user": () => json(intern), ...handlers })
   const app = renderApp("/")
   await screen.findByRole("heading", { level: 1, name: "С чего начнём?" })
-  return app
+  return { ...app, fetchMock }
+}
+
+const firstDay = {
+  id: 1,
+  title: "Первый день в команде",
+  description: "Доступы, знакомства и первые шаги на стажировке.",
+  category: "start_work",
 }
 
 const region = (name: string) => within(screen.getByRole("region", { name }))
@@ -40,18 +49,64 @@ describe("HomePage", () => {
     expect(steps.getByRole("list").tagName).toBe("OL")
   })
 
-  it("opens the document with the first steps", async () => {
+  it("opens the document with the first steps from the knowledge base", async () => {
     const user = userEvent.setup()
-    await renderHome()
+    const firstSteps = {
+      id: 13,
+      title: "Первые шаги стажёра",
+      description: "План на первую неделю.",
+      category: "start_work",
+    }
+    const { fetchMock } = await renderHome({
+      "GET /api/documents": () => json([firstDay, firstSteps]),
+      "GET /api/documents/13": () =>
+        json({
+          title: firstSteps.title,
+          category: "start_work",
+          text: "# Первые шаги\n\n## 1. Получи доступы\n\nПроверь доступ к репозиторию.",
+        }),
+    })
+    // the main page itself does not ask for documents
+    expect(fetchMock).toHaveBeenCalledTimes(1)
 
     await user.click(screen.getByRole("button", { name: "Открыть документ „Первые шаги“" }))
 
-    const dialog = screen.getByRole("dialog", { name: "Первые шаги" }) as HTMLDialogElement
+    const dialog = (await screen.findByRole("dialog", {
+      name: "Первые шаги стажёра",
+    })) as HTMLDialogElement
     expect(dialog.open).toBe(true)
+    expect(dialog).toHaveAccessibleDescription("План на первую неделю.")
+    expect(
+      await within(dialog).findByRole("heading", { level: 3, name: "1. Получи доступы" }),
+    ).toBeVisible()
+    expect(within(dialog).getByRole("link", { name: "Открыть в новой вкладке" })).toHaveAttribute(
+      "href",
+      "/knowledge-base?doc=13",
+    )
 
     await user.click(within(dialog).getByRole("button", { name: "Закрыть" }))
 
     expect(dialog.open).toBe(false)
+  })
+
+  it("says when the knowledge base has no document with the first steps", async () => {
+    const user = userEvent.setup()
+    await renderHome({ "GET /api/documents": () => json([firstDay]) })
+
+    await user.click(screen.getByRole("button", { name: "Открыть документ „Первые шаги“" }))
+
+    const dialog = await screen.findByRole("dialog", { name: "Документ не найден" })
+    expect(within(dialog).getByRole("link", { name: "базе знаний" })).toHaveAttribute(
+      "href",
+      "/knowledge-base",
+    )
+    expect(within(dialog).getByRole("link", { name: "спроси AI Buddy" })).toHaveAttribute(
+      "href",
+      "/chat",
+    )
+    expect(
+      within(dialog).queryByRole("link", { name: "Открыть в новой вкладке" }),
+    ).not.toBeInTheDocument()
   })
 
   it("answers the first question right away and the rest on demand", async () => {

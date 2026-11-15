@@ -52,6 +52,11 @@ interface ChatConversationProps {
   transport: ChatTransport
 }
 
+interface CompletedReply {
+  message: Message
+  previousIds: Set<string>
+}
+
 export function ChatConversation({ userId, displayName, transport }: ChatConversationProps) {
   const history = useQuery({
     queryKey: ["chat", userId],
@@ -61,10 +66,12 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
   const [draft, setDraft] = useState("")
   const [outgoing, setOutgoing] = useState<Message>()
   const [{ content: partial, fragments }, setPartial] = useState(emptyReply)
+  const [completedReplies, setCompletedReplies] = useState<CompletedReply[]>([])
   const [newReplyId, setNewReplyId] = useState<string>()
   const [sendError, setSendError] = useState(false)
   const [showScrollButton, setShowScrollButton] = useState(false)
   const request = useRef<AbortController | null>(null)
+  const replySequence = useRef(0)
   const timeline = useRef<HTMLDivElement>(null)
   const scrollButton = useRef<HTMLButtonElement>(null)
   const sendArrow = useRef<HTMLSpanElement>(null)
@@ -77,11 +84,36 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
 
   const initial = Array.from(displayName.trim())[0]?.toLocaleUpperCase("ru-RU") || "?"
   const sending = Boolean(outgoing)
-  const messages = [...(history.data ?? [])]
+  const historyMessages = history.data ?? []
+  const matchedIds = new Set<string>()
+  const unsavedReplies = completedReplies.filter(({ message, previousIds }) => {
+    const saved = historyMessages.find(
+      (entry) =>
+        entry.role === "assistant" &&
+        entry.content === message.content &&
+        !previousIds.has(entry.id) &&
+        !matchedIds.has(entry.id),
+    )
+    if (!saved) return true
+    matchedIds.add(saved.id)
+    return false
+  })
+  if (matchedIds.size) {
+    // Each saved message can replace only one local reply, even when the text repeats.
+    setCompletedReplies(
+      unsavedReplies.map(({ message, previousIds }) => ({
+        message,
+        previousIds: new Set([...previousIds, ...matchedIds]),
+      })),
+    )
+  }
+
+  const messages = [...historyMessages, ...unsavedReplies.map(({ message }) => message)]
+  const activeReplyId = outgoing && `${outgoing.id}-assistant`
   if (outgoing) {
     messages.push(outgoing)
-    if (partial) {
-      messages.push({ ...outgoing, id: "pending-assistant", role: "assistant", content: partial })
+    if (partial && activeReplyId) {
+      messages.push({ ...outgoing, id: activeReplyId, role: "assistant", content: partial })
     }
   }
 
@@ -124,7 +156,7 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
       smoothTop.current = null
       element.scrollTop = target
     }
-  }, [history.data, outgoing, partial, newReplyId])
+  }, [history.data, outgoing, partial, newReplyId, completedReplies])
 
   function stopLatestScroll() {
     if (latestScroll.current) cancelAnimationFrame(latestScroll.current.frame)
@@ -250,18 +282,19 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
     request.current = controller
     setDraft("")
     setSendError(false)
-    setOutgoing({
-      id: "pending-user",
+    const userMessage: Message = {
+      id: `pending-${++replySequence.current}`,
       role: "user",
       content: message,
       created_at: new Date().toISOString(),
-    })
+    }
+    setOutgoing(userMessage)
 
-    let showedPartial = false
+    let streamedText = ""
     try {
-      await transport.send(message, controller.signal, (delta) => {
+      const finalResponse = await transport.send(message, controller.signal, (delta) => {
         if (!controller.signal.aborted && delta) {
-          showedPartial = true
+          streamedText += delta
           const receivedAt = performance.now()
           setPartial((current) => ({
             content: current.content + delta,
@@ -278,11 +311,32 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
           }))
         }
       })
-      if (!controller.signal.aborted) {
+      if (controller.signal.aborted) return
+      const content = finalResponse ?? streamedText
+      if (content) {
+        const previousIds = new Set(history.data.map((entry) => entry.id))
+        setCompletedReplies((current) => [
+          ...current,
+          {
+            message: {
+              ...userMessage,
+              id: `${userMessage.id}-assistant`,
+              role: "assistant",
+              content,
+            },
+            previousIds,
+          },
+        ])
+        void history.refetch()
+      } else {
         const result = await history.refetch()
-        if (!controller.signal.aborted && !showedPartial) {
-          const reply = result.data?.findLast((entry) => entry.role === "assistant")
-          if (reply && !history.data.some((entry) => entry.id === reply.id)) setNewReplyId(reply.id)
+        const reply = result.data?.findLast((entry) => entry.role === "assistant")
+        if (
+          !controller.signal.aborted &&
+          reply &&
+          !history.data.some((entry) => entry.id === reply.id)
+        ) {
+          setNewReplyId(reply.id)
         }
       }
     } catch {
@@ -390,7 +444,7 @@ export function ChatConversation({ userId, displayName, transport }: ChatConvers
                       message={message}
                       initial={initial}
                       entering={message === outgoing || message.id === newReplyId}
-                      streamFragments={message.id === "pending-assistant" ? fragments : undefined}
+                      streamFragments={message.id === activeReplyId ? fragments : undefined}
                       onEnterEnd={
                         message.id === newReplyId ? () => setNewReplyId(undefined) : undefined
                       }

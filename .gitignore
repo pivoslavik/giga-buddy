@@ -7,7 +7,10 @@
 venv/
 env/
 secrets/
+# files the integration downloads from Google Drive
 documents/
+# code of the same name is not one of them
+!frontend/src/features/documents/
 
 # Go
 bin/

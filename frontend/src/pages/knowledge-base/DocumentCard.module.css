@@ -1,0 +1,200 @@
+.card {
+  --tile-bg: var(--color-soft-green);
+  --tile-fg: #079142;
+
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: 1fr auto;
+  gap: 20px 16px;
+  padding: 24px;
+  border: 1.5px solid rgb(255 255 255 / 0.9);
+  border-radius: var(--radius-l);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    translate 0.15s ease;
+}
+
+.green {
+  --tile-bg: var(--color-soft-green);
+  --tile-fg: #079142;
+}
+
+.blue {
+  --tile-bg: #d9f1fd;
+  --tile-fg: #0277bd;
+}
+
+.pink {
+  --tile-bg: #fde3ee;
+  --tile-fg: #c2185b;
+}
+
+.yellow {
+  --tile-bg: #fff0c7;
+  --tile-fg: #a86a00;
+}
+
+.cyan {
+  --tile-bg: #d4f5fa;
+  --tile-fg: #00838f;
+}
+
+.slate {
+  --tile-bg: #e8eaf4;
+  --tile-fg: #48527a;
+}
+
+.purple {
+  --tile-bg: var(--color-soft-purple);
+  --tile-fg: #6a3fd0;
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-m);
+  background: var(--tile-bg);
+  color: var(--tile-fg);
+}
+
+.icon svg {
+  width: 28px;
+  height: 28px;
+  stroke-width: 1.8;
+}
+
+.text {
+  min-width: 0;
+}
+
+.category {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.title {
+  margin-top: 6px;
+  padding-right: 20px;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.link {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* the link covers the whole card */
+.link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.link:focus-visible {
+  outline: none;
+}
+
+.card:has(.link:focus-visible) {
+  outline: 3px solid var(--color-accent-blue);
+  outline-offset: 2px;
+}
+
+.description {
+  margin-top: 6px;
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.more {
+  display: inline-flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 6px;
+  justify-self: start;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.more svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.4;
+  transition: translate 0.15s ease;
+}
+
+/* positioned after the link, the arrow lies above its overlay, so clicks have to go through it */
+.hoverArrow {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 22px;
+  height: 22px;
+  color: var(--color-accent-green);
+  stroke-width: 2.4;
+  opacity: 0;
+  translate: -4px 0;
+  pointer-events: none;
+  transition:
+    opacity 0.15s ease,
+    translate 0.15s ease;
+}
+
+@media (hover: hover) {
+  .card:hover {
+    border-color: var(--color-accent-green);
+    box-shadow:
+      0 1px 2px rgb(16 16 40 / 0.04),
+      0 12px 32px rgb(16 16 40 / 0.1);
+    translate: 0 -2px;
+  }
+
+  .card:hover .hoverArrow {
+    opacity: 1;
+    translate: 0 0;
+  }
+
+  .card:hover .more svg {
+    translate: 2px -2px;
+  }
+}
+
+.card:active {
+  translate: 0 0;
+}
+
+@media (max-width: 480px) {
+  .card {
+    gap: 16px 14px;
+    padding: 20px;
+  }
+
+  .icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-s);
+  }
+
+  .icon svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .title {
+    font-size: 18px;
+  }
+}

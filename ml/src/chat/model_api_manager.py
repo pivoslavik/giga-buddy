@@ -1,12 +1,15 @@
+import json
 from collections.abc import AsyncGenerator, Iterable, Sequence
 
+from mcp import ClientSession
 from openai import AsyncOpenAI
-from openai.types.chat import ChatCompletionMessageParam
+from openai.types.chat import ChatCompletionMessageParam, ChatCompletionToolParam
 from openai.types.chat.chat_completion_chunk import ChoiceDelta
 
-
+from ..mcp.client import CHAT_TOOLS, call_chat_tool
+from .draft_format import format_draft
 from .store import ChatMessage
-from .system_prompt import SYSTEM_PROMPT
+from .system_prompt import MCP_SYSTEM_PROMPT, SYSTEM_PROMPT
 
 
 def build_chat_messages(
@@ -42,6 +45,84 @@ class ModelAPIManager:
     def __init__(self, client: AsyncOpenAI, chat_model: str) -> None:
         self.client = client
         self.chat_model = chat_model
+
+    async def collect_tool_results(
+        self, messages: list[ChatCompletionMessageParam], session: ClientSession
+    ) -> str | None:
+        tools: list[ChatCompletionToolParam] = [
+            {
+                "type": "function",
+                "function": {
+                    "name": tool.name,
+                    "description": tool.description or "",
+                    "parameters": tool.inputSchema,
+                },
+            }
+            for tool in (await session.list_tools()).tools
+            if tool.name in CHAT_TOOLS
+        ]
+        if not tools:
+            return None
+
+        messages.insert(
+            1,
+            {
+                "role": "system",
+                "content": MCP_SYSTEM_PROMPT,
+            },
+        )
+        for _ in range(4):
+            response = await self.client.chat.completions.create(
+                model=self.chat_model,
+                messages=messages,
+                tools=tools,
+            )
+            if not response.choices:
+                raise ModelAPIError("Missing tool selection choice")
+            message = response.choices[0].message
+            if not message.tool_calls:
+                return (
+                    message.content
+                    if message.content and message.content.strip()
+                    else None
+                )
+            if len(message.tool_calls) > 4 or any(
+                call.type != "function" for call in message.tool_calls
+            ):
+                raise ModelAPIError("Invalid tool selection")
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": message.content,
+                    "tool_calls": [
+                        {
+                            "id": call.id,
+                            "type": "function",
+                            "function": {
+                                "name": call.function.name,
+                                "arguments": call.function.arguments,
+                            },
+                        }
+                        for call in message.tool_calls
+                    ],
+                }
+            )
+            for call in message.tool_calls:
+                result = await call_chat_tool(
+                    session, call.function.name, call.function.arguments
+                )
+                messages.append(
+                    {"role": "tool", "tool_call_id": call.id, "content": result}
+                )
+                if call.function.name in {
+                    "access_prepare",
+                    "review_prepare",
+                    "absence_prepare",
+                }:
+                    draft = json.loads(result)
+                    if draft.get("status") == "awaiting_confirmation":
+                        return format_draft(call.function.name, draft)
+        return None
 
     async def generate_reply(
         self, messages: Iterable[ChatCompletionMessageParam]

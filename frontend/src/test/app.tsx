@@ -23,10 +23,15 @@ export function status(code: number) {
 
 type ApiHandler = (init: RequestInit | undefined) => Response | Promise<Response>
 
-/** Stubs fetch with handlers keyed by "METHOD /path". Any other request gets a 404. */
+/**
+ * Stubs fetch with handlers keyed by "METHOD /path", with or without the query string.
+ * Any other request gets a 404.
+ */
 export function mockApi(handlers: Record<string, ApiHandler>) {
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-    const handler = handlers[`${init?.method ?? "GET"} ${String(input)}`]
+    const method = init?.method ?? "GET"
+    const url = String(input)
+    const handler = handlers[`${method} ${url}`] ?? handlers[`${method} ${url.split("?")[0]}`]
     return handler ? handler(init) : status(404)
   })
   vi.stubGlobal("fetch", fetchMock)

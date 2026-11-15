@@ -62,13 +62,14 @@ def test_concurrent_reindexing_and_rollback_with_pgvector():
             ) as pool:
                 model = TestEmbeddings()
                 processor = DocumentProcessor(pool, Chunker(9, 0), model)
-                assert await asyncio.gather(
-                    processor.process(document_id), processor.process(document_id)
-                ) == [2, 2]
+                await asyncio.gather(
+                    processor.process_add_or_modify_document_chunks(document_id),
+                    processor.process_add_or_modify_document_chunks(document_id),
+                )
 
                 model.dimension = 383
                 with pytest.raises(asyncpg.DataError):
-                    await processor.process(document_id)
+                    await processor.process_add_or_modify_document_chunks(document_id)
 
             rows = await admin.fetch("""
                 SELECT document_id, content, chunk_index, vector_dims(embedding)

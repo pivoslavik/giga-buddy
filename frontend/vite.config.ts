@@ -1,8 +1,25 @@
 import react, { reactCompilerPreset } from "@vitejs/plugin-react"
 import babel from "@rolldown/plugin-babel"
-import { loadEnv } from "vite"
+import { loadEnv, type ProxyOptions } from "vite"
 import { defineConfig } from "vitest/config"
 import { mockApiPlugin } from "./mock/mockApi.ts"
+
+/**
+ * Forwards /api/* to the backend the way nginx does in production (#38): the method, path, query,
+ * headers, cookies and body go through as they are.
+ */
+function apiProxy(target: string): Record<string, ProxyOptions> {
+  return {
+    "/api/": {
+      target,
+      changeOrigin: true,
+      // X-Forwarded-For/Proto/Host tell the backend who the client is, not the dev server
+      xfwd: true,
+      // a cookie with the backend's own Domain would be dropped by the browser on localhost
+      cookieDomainRewrite: "",
+    },
+  }
+}
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -12,17 +29,11 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), babel({ presets: [reactCompilerPreset()] }), useMockApi && mockApiPlugin()],
+    // `npm run preview` uses the same proxy
     server: {
-      proxy: useMockApi
-        ? undefined
-        : {
-            // `npm run dev` forwards API calls to nginx from docker compose by default,
-            // set API_PROXY_TARGET to point at a locally started backend instead
-            "/api": {
-              target: env.API_PROXY_TARGET || "http://localhost",
-              changeOrigin: true,
-            },
-          },
+      // `npm run dev` forwards API calls to nginx from docker compose by default,
+      // set API_PROXY_TARGET to point at a locally started backend instead
+      proxy: useMockApi ? undefined : apiProxy(env.API_PROXY_TARGET || "http://localhost"),
     },
     test: {
       environment: "jsdom",
