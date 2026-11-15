@@ -1,5 +1,4 @@
 import logging
-import os
 from collections.abc import AsyncIterator
 from contextlib import AsyncExitStack, asynccontextmanager
 
@@ -16,6 +15,7 @@ from .chat import router as chat
 from .chat.model_api_manager import ModelAPIManager
 from .chat.service import ChatService
 from .chat.store import ChatStore
+from .config import Config
 from .documents import router as documents
 from .documents.chunker import Chunker
 from .documents.embeddings import Embeddings
@@ -32,21 +32,15 @@ class HealthCheckLogFilter(logging.Filter):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    base_url = os.getenv("OPENAI_BASE_URL")
-    api_key = os.getenv("OPENAI_API_KEY")
-    chat_model = os.getenv("OPENAI_CHAT_MODEL")
-    mcp_url = os.getenv("BUDDY_MCP_URL")
+    config = Config.from_env()
+    mcp_url = config.buddy_mcp_url
     buddy_mcp = (
-        BuddyMCPClient(
-            mcp_url,
-            os.environ["BUDDY_MCP_TOKEN"],
-            os.getenv("BUDDY_MCP_SUBMIT_TOKEN", ""),
-        )
+        BuddyMCPClient(mcp_url, config.buddy_mcp_token, config.buddy_mcp_submit_token)
         if mcp_url
         else None
     )
     async with asyncpg.create_pool(
-        os.environ["DATABASE_URL"],
+        config.database_url,
         min_size=1,
         max_size=4,
         timeout=10,
@@ -55,20 +49,31 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     ) as pool:
         async with AsyncExitStack() as stack:
             model_api = None
-            if base_url and api_key and chat_model:
+            if (
+                config.openai_base_url
+                and config.openai_api_key
+                and config.openai_chat_model
+            ):
                 client = await stack.enter_async_context(
                     AsyncOpenAI(
-                        base_url=base_url,
-                        api_key=api_key,
+                        base_url=config.openai_base_url,
+                        api_key=config.openai_api_key,
                         timeout=httpx.Timeout(180, connect=10, read=60),
                         max_retries=0,
                     )
                 )
-                model_api = ModelAPIManager(client, chat_model)
-            embeddings = await Embeddings.load()
+                model_api = ModelAPIManager(client, config.openai_chat_model)
+            embeddings = await Embeddings.load(config)
             try:
                 app.state.chat_service = (
-                    ChatService(ChatStore(pool), embeddings, model_api, buddy_mcp)
+                    ChatService(
+                        ChatStore(pool),
+                        embeddings,
+                        model_api,
+                        buddy_mcp,
+                        messages_to_context=config.messages_to_context,
+                        documents_to_context=config.documents_to_context,
+                    )
                     if model_api is not None
                     else None
                 )

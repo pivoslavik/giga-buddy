@@ -39,10 +39,15 @@ class ChatService:
         embeddings: Embeddings,
         model_api: ModelAPIManager,
         buddy_mcp: BuddyMCPClient | None = None,
+        *,
+        messages_to_context: int,
+        documents_to_context: int,
     ) -> None:
         self.store = store
         self.embeddings = embeddings
         self.model_api = model_api
+        self.messages_to_context = messages_to_context
+        self.documents_to_context = documents_to_context
         self.buddy_mcp = buddy_mcp
 
     async def generate_reply(self, user_id: int, message_id: int) -> str:
@@ -63,7 +68,9 @@ class ChatService:
     async def _prepare_messages(
         self, user_id: int, message_id: int
     ) -> tuple[list[ChatCompletionMessageParam], str | None]:
-        history = await self.store.get_history(user_id, message_id)
+        history = await self.store.get_history(
+            user_id, message_id, limit=self.messages_to_context
+        )
         if not history:
             raise MessageNotFound
 
@@ -115,7 +122,9 @@ class ChatService:
             )
 
         [embedding] = await self.embeddings.encode([question], prefix="query")
-        chunks = await self.store.find_relevant_chunks(embedding)
+        chunks = await self.store.find_relevant_chunks(
+            embedding, limit=self.documents_to_context
+        )
         messages = build_chat_messages(history, chunks)
         if self.buddy_mcp is None:
             return messages, None

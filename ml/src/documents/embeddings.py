@@ -1,9 +1,9 @@
 import asyncio
-import os
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 
+from ..config import Config
 from ..e5_model import OnnxModel, download_model
 
 DIMENSION = 384
@@ -17,9 +17,8 @@ class InferenceUnavailable(RuntimeError):
     pass
 
 
-def load_model():
-    model_path = os.getenv("ML_MODEL_PATH") or download_model()
-    return OnnxModel(model_path)
+def load_model(model_path: str) -> OnnxModel:
+    return OnnxModel(model_path or download_model())
 
 
 class Embeddings:
@@ -33,12 +32,9 @@ class Embeddings:
         self._executor = ThreadPoolExecutor(max_workers=len(models))
 
     @classmethod
-    async def load(cls) -> "Embeddings":
-        max_waiting = int(os.getenv("ML_INFERENCE_MAX_WAITING", "2"))
-        if max_waiting < 0:
-            raise ValueError("ML_INFERENCE_MAX_WAITING must be nonnegative")
-        model = await asyncio.to_thread(load_model)
-        return cls([model], max_waiting)
+    async def load(cls, config: Config) -> "Embeddings":
+        model = await asyncio.to_thread(load_model, config.embeddings_model_path)
+        return cls([model], max_waiting=config.inference_max_waiting)
 
     async def close(self) -> None:
         self._closing = True
