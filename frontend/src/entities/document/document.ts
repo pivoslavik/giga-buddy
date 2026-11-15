@@ -40,10 +40,10 @@ export interface DocumentSummary {
 }
 
 /**
- * How many documents the knowledge base asks for. The backend has no search and no offset, and
- * the page searches the titles and descriptions itself, so it loads the whole base at once.
+ * How many documents the knowledge base asks for. The backend has neither a search nor an offset
+ * yet, so the page shows these first documents and searches and filters among them.
  */
-export const DOCUMENTS_LIMIT = 500
+export const DOCUMENTS_LIMIT = 20
 
 /**
  * GET /api/documents?amount=…&category=…: `amount` and at least one `category` are required,

@@ -113,9 +113,9 @@ cached value of a query nothing subscribes to.
 
 `/knowledge-base` lists the documents from `GET /api/documents?amount=…&category=…` (#13). The
 backend wants `amount` and at least one `category`, and it can neither search nor skip documents,
-so the page asks once for up to 500 documents of every category. The search by title and
-description, the filter by category and the sorting by title run in the browser: switching them
-needs no request, and the search sees the whole base.
+so the page asks once for the first 20 documents of every category. The search by title and
+description, the filter by category and the sorting by title run in the browser on them: switching
+them needs no request.
 
 A card is a link to `/knowledge-base?doc=<id>`, which opens the document in a modal over the list,
 so a document can be opened in a new tab or shared. Closing it opened from the list goes back in
