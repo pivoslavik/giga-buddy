@@ -16,13 +16,6 @@ export function ChatPage() {
   )
 }
 
-// TODO(#8): replace with the knowledge base; it is not in the header, like in the design references
-export function KnowledgeBasePage() {
-  return (
-    <Placeholder title="База знаний" subtitle="Всё, что нужно для уверенного старта в команде" />
-  )
-}
-
 function Placeholder({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <>

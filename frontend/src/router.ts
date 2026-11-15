@@ -10,8 +10,11 @@ import { sessionQueryOptions } from "./entities/session/session"
 import { AppLayout } from "./pages/app-layout/AppLayout"
 import { ChatPage } from "./pages/chat/ChatPage"
 import { HomePage } from "./pages/home/HomePage"
+import {
+  KnowledgeBasePage,
+  type KnowledgeBaseSearch,
+} from "./pages/knowledge-base/KnowledgeBasePage"
 import { LandingPage } from "./pages/landing/LandingPage"
-import { KnowledgeBasePage } from "./pages/placeholder/PlaceholderPages"
 import { ProfilePage } from "./pages/profile/ProfilePage"
 
 export interface RouterContext {
@@ -71,6 +74,12 @@ const chatRoute = createRoute({
 const knowledgeBaseRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: "/knowledge-base",
+  // `?doc=<id>` is the document open in the modal over the list. A wrong id has to be overwritten
+  // with undefined: the raw search params of the URL are merged under the validated ones.
+  validateSearch: (search: Record<string, unknown>): KnowledgeBaseSearch => {
+    const doc = Number(search.doc)
+    return { doc: Number.isSafeInteger(doc) && doc > 0 ? doc : undefined }
+  },
   component: KnowledgeBasePage,
 })
 
