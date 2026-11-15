@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-=======
 import logging
-import os
->>>>>>> main
 from collections.abc import AsyncIterator
 from contextlib import AsyncExitStack, asynccontextmanager
 
@@ -37,6 +33,7 @@ class HealthCheckLogFilter(logging.Filter):
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     config = Config.from_env()
+    mcp_url = config.buddy_mcp_url
     buddy_mcp = (
         BuddyMCPClient(
             mcp_url,
@@ -70,7 +67,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                     )
                 )
                 model_api = ModelAPIManager(client, config.openai_chat_model)
-            embeddings = await Embeddings.load(max_waiting=config.inference_max_waiting)
+            embeddings = await Embeddings.load(config)
             try:
                 app.state.chat_service = (
                     ChatService(

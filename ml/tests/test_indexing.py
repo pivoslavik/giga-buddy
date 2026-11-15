@@ -29,6 +29,10 @@ def indexing(monkeypatch):
     monkeypatch.setenv("OPENAI_CHAT_MODEL", "test-model")
     monkeypatch.setenv("MESSAGES_TO_CONTEXT", "2")
     monkeypatch.setenv("DOCUMENTS_TO_CONTEXT", "1")
+    monkeypatch.setenv("BUDDY_MCP_URL", "")
+    monkeypatch.setenv("BUDDY_MCP_TOKEN", "")
+    monkeypatch.setenv("BUDDY_MCP_SUBMIT_TOKEN", "")
+    monkeypatch.setenv("ML_MODEL_PATH", "test-model-path")
     model_api = Mock(generate_reply=AsyncMock(return_value="Answer"))
     monkeypatch.setattr(main, "ModelAPIManager", Mock(return_value=model_api))
     create_pool = Mock(return_value=pool)
@@ -47,7 +51,7 @@ def indexing(monkeypatch):
     )
     pool.__aenter__.assert_awaited_once()
     pool.__aexit__.assert_awaited_once()
-    loader.assert_called_once()
+    loader.assert_called_once_with("test-model-path")
 
 
 @pytest.mark.parametrize(

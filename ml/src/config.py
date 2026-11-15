@@ -23,6 +23,8 @@ class Config:
     inference_max_waiting: int
     buddy_mcp_token: str = field(repr=False)
     buddy_mcp_submit_token: str = field(repr=False)
+    buddy_mcp_url: str
+    embeddings_model_path: str
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -37,12 +39,11 @@ class Config:
             documents_to_context=_check_non_negative_int(
                 "DOCUMENTS_TO_CONTEXT", environ["DOCUMENTS_TO_CONTEXT"]
             ),
-            inference_max_waiting=cls.inference_max_waiting_from_env(),
+            inference_max_waiting=_check_non_negative_int(
+                "ML_INFERENCE_MAX_WAITING", environ["ML_INFERENCE_MAX_WAITING"]
+            ),
             buddy_mcp_token=environ["BUDDY_MCP_TOKEN"],
             buddy_mcp_submit_token=environ["BUDDY_MCP_SUBMIT_TOKEN"],
+            buddy_mcp_url=environ["BUDDY_MCP_URL"],
+            embeddings_model_path=environ["ML_MODEL_PATH"],
         )
-
-    @staticmethod
-    def inference_max_waiting_from_env() -> int:
-        name = "ML_INFERENCE_MAX_WAITING"
-        return _check_non_negative_int(name, environ[name])

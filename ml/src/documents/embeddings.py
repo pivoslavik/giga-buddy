@@ -3,9 +3,9 @@ from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 
-
 from ..config import Config
 from ..e5_model import OnnxModel, download_model
+
 DIMENSION = 384
 
 
@@ -17,9 +17,8 @@ class InferenceUnavailable(RuntimeError):
     pass
 
 
-def load_model():
-    model_path = os.getenv("ML_MODEL_PATH") or download_model()
-    return OnnxModel(model_path)
+def load_model(model_path: str) -> OnnxModel:
+    return OnnxModel(model_path or download_model())
 
 
 class Embeddings:
@@ -33,11 +32,9 @@ class Embeddings:
         self._executor = ThreadPoolExecutor(max_workers=len(models))
 
     @classmethod
-    async def load(cls, *, max_waiting: int | None = None) -> "Embeddings":
-        if max_waiting is None:
-            max_waiting = Config.inference_max_waiting_from_env()
-        model = await asyncio.to_thread(load_model)
-        return cls([model], max_waiting)
+    async def load(cls, config: Config) -> "Embeddings":
+        model = await asyncio.to_thread(load_model, config.embeddings_model_path)
+        return cls([model], max_waiting=config.inference_max_waiting)
 
     async def close(self) -> None:
         self._closing = True
