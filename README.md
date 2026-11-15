@@ -8,6 +8,20 @@
 `make down` останавливает стек и сохраняет тома.
 `make down-v` останавливает стек и удаляет тома вместе с данными PostgreSQL.
 
+### Тесты Python
+
+Запускайте команды из корня проекта. Для ML и интеграции нужны отдельные окружения Python 3.12, поскольку сервисы используют разные версии OpenAI SDK.
+
+```bash
+python3.12 -m venv .venv
+.venv/bin/python -m pip install -r ml/requirements-test.txt
+.venv/bin/python -m pytest ml/tests --cov=ml/src --cov=ml/health
+
+python3.12 -m venv integration/.venv
+integration/.venv/bin/python -m pip install -r integration/requirements-test.txt
+integration/.venv/bin/python -m pytest integration/tests --cov=integration/src
+```
+
 ### Тестовые данные PostgreSQL
 
 Из корня проекта с настроенным `.env` выполните команду, которая запускает PostgreSQL, применяет миграции и загружает данные в локальную БД.

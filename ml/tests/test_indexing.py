@@ -27,7 +27,7 @@ def indexing(monkeypatch):
     monkeypatch.setenv("OPENAI_BASE_URL", "https://example.test")
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     monkeypatch.setenv("OPENAI_CHAT_MODEL", "test-model")
-    monkeypatch.setenv("MESSAGES_TO_CONTEXT", "2")
+    monkeypatch.setenv("MESSAGES_TO_CONTEXT", "3")
     monkeypatch.setenv("DOCUMENTS_TO_CONTEXT", "1")
     monkeypatch.setenv("BUDDY_MCP_URL", "")
     monkeypatch.setenv("BUDDY_MCP_TOKEN", "")
@@ -83,6 +83,13 @@ def test_missing_or_invalid_document_status(indexing, status_fields):
     assert response.status_code == 422
     connection.fetchval.assert_not_awaited()
     model.encode.assert_not_called()
+
+
+def test_health_reports_ready(indexing):
+    client, _, _, _ = indexing
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
 
 
 def test_deleted_removes_only_chunks_and_can_be_retried(indexing):
@@ -241,7 +248,8 @@ def test_chat_uses_requested_message_and_shared_model(indexing, stream):
     payload = {"user_id": 3, "message_id": 12, "stream": stream}
     assert client.post("/analyze", json=payload).status_code == 404
     model.encode.assert_not_called()
-    assert client.post("/documents", json={"document_id": 42}).status_code == 200
+    response = client.post("/documents", json={"document_id": 42, "status": "added"})
+    assert response.status_code == 200
     response = client.post("/analyze", json=payload)
     if stream:
         assert response.headers["content-type"].startswith("text/event-stream")
