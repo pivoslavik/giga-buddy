@@ -41,7 +41,8 @@ func Run(config config.ServerConfig) error {
 
 	protectedAPI.GET("/user", user.HandleUser(&database))
 
-	protectedAPI.GET("/documents", document.HandleDocumentsList(&database))
+	documentHandler := document.NewHandler(&database)
+	documentHandler.RegisterRoutes(protectedAPI)
 
 	chatHandler := chat.NewHandler(&database, config.MessagesPerUser, config.MLURL)
 	chatHandler.RegisterRoutes(protectedAPI)

@@ -27,3 +27,23 @@ func (q *Queries) GetShortDocumentsWithAmountByCategory(ctx context.Context, amo
 	}
 	return documents, nil
 }
+
+func (q *Queries) GetDocumentByID(ctx context.Context, documentID documentmodel.DocumentID) (documentmodel.Document, error) {
+	var document documentmodel.Document
+	
+	err := pgxscan.Get(ctx, q.pool, &document,
+		`
+			SELECT id, title, description, text, category
+			FROM documents
+			WHERE id = $1
+		`,
+		documentID,
+	)
+	if err != nil {
+		if pgxscan.NotFound(err) {
+			return documentmodel.Document{}, err
+		}
+		return documentmodel.Document{}, fmt.Errorf("GetDocumentByID: %w", err)
+	}
+	return document, nil
+}
