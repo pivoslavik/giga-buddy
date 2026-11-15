@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react"
+import { screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 import type { User } from "../../entities/session/session"
@@ -48,6 +48,17 @@ describe("UserMenu", () => {
     expect(toggle).toHaveAttribute("aria-expanded", "true")
     expect(screen.getByText("intern@example.com")).toBeVisible()
     expect(screen.getByRole("button", { name: "Выйти из аккаунта" })).toBeVisible()
+  })
+
+  it("names the user by the login when the account has neither a name nor an email", async () => {
+    const user = userEvent.setup()
+    mockApi({ "GET /api/user": () => json({ ...intern, display_name: "", email: "" }) })
+    renderApp("/")
+
+    await user.click(await screen.findByRole("button", { name: "Аккаунт: intern" }))
+
+    const panel = screen.getByRole("button", { name: "Выйти из аккаунта" }).parentElement!
+    expect(within(panel).getAllByText("intern")).toHaveLength(2)
   })
 
   it("closes on Escape and returns focus to the avatar", async () => {
