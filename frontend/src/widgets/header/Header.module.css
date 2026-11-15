@@ -65,8 +65,8 @@
   justify-self: end;
 }
 
-/* on phones the sections move to their own row and share its width */
-@media (max-width: 720px) {
+/* on smaller screens the four sections move to their own row */
+@media (max-width: 960px) {
   .header {
     grid-template-columns: 1fr auto;
     grid-template-areas:
@@ -94,5 +94,12 @@
     min-height: 40px;
     padding: 0 12px;
     font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .navList {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
