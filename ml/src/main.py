@@ -35,11 +35,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     config = Config.from_env()
     mcp_url = config.buddy_mcp_url
     buddy_mcp = (
-        BuddyMCPClient(
-            mcp_url,
-            config.buddy_mcp_token,
-            config.buddy_mcp_submit_token
-        )
+        BuddyMCPClient(mcp_url, config.buddy_mcp_token, config.buddy_mcp_submit_token)
         if mcp_url
         else None
     )
