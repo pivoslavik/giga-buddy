@@ -3,6 +3,7 @@ import babel from "@rolldown/plugin-babel"
 import { loadEnv, type ProxyOptions } from "vite"
 import { defineConfig } from "vitest/config"
 import { mockApiPlugin } from "./mock/mockApi.ts"
+import { ignoreReactCompilerCache } from "./reactCompilerCoverage.ts"
 
 /**
  * Forwards /api/* to the backend the way nginx does in production (#38): the method, path, query,
@@ -46,6 +47,8 @@ export default defineConfig(({ mode }) => {
         include: ["src/**/*.{ts,tsx}"],
         // main.tsx only mounts the app into the DOM, there is nothing to assert there
         exclude: ["src/**/*.test.{ts,tsx}", "src/test/**", "src/main.tsx", "src/**/*.d.ts"],
+        // counts our code, not the memoization the React Compiler adds to every component
+        ignoreNode: ignoreReactCompilerCache,
         reporter: ["text", "html", "lcov"],
         thresholds: {
           lines: 80,
