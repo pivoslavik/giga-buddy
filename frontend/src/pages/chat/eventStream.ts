@@ -6,7 +6,7 @@ interface StreamEvent {
 
 export async function readEventStream(
   body: ReadableStream<Uint8Array>,
-  onEvent?: (event: StreamEvent) => void,
+  onEvent?: (event: StreamEvent) => void | Promise<void>,
 ) {
   const reader = body.getReader()
   const decoder = new TextDecoder()
@@ -18,7 +18,10 @@ export async function readEventStream(
   function readLine(line: string) {
     if (!line) {
       if (data.length) {
-        onEvent?.({ type: eventType || "message", data: data.join("\n"), lastEventId })
+        const event = { type: eventType || "message", data: data.join("\n"), lastEventId }
+        eventType = ""
+        data = []
+        return onEvent?.(event)
       }
       eventType = ""
       data = []
@@ -51,7 +54,10 @@ export async function readEventStream(
       const end = !done && buffer.endsWith("\r") ? buffer.length - 1 : buffer.length
       const lines = buffer.slice(0, end).split(/\r\n|\n|\r/)
       buffer = lines.pop() + buffer.slice(end)
-      lines.forEach(readLine)
+      for (const line of lines) {
+        const pending = readLine(line)
+        if (pending) await pending
+      }
 
       if (done) break
     }

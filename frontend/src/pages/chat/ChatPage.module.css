@@ -2,28 +2,11 @@
   --chat-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --chat-cinematic-out: cubic-bezier(0.16, 1, 0.3, 1);
   /* Shared header, layout padding, chat title and notice around the panel. */
-  --chat-layout-space: 285px;
-
-  max-width: 1130px;
-  margin-inline: auto;
+  --chat-layout-space: 253px;
 }
 
 .intro {
-  padding: 13px 7px 14px;
-}
-
-.intro h1 {
-  font-size: 35px;
-  font-weight: 850;
-  line-height: 37px;
-  letter-spacing: -0.02em;
-}
-
-.intro p {
-  color: #394766;
-  font-size: 17px;
-  font-weight: 600;
-  line-height: 20px;
+  margin-bottom: 24px;
 }
 
 .panel {
@@ -771,19 +754,6 @@
 @media (max-width: 700px) {
   .emptyState {
     padding-bottom: clamp(16px, calc(5dvh / var(--ui-zoom)), 36px);
-  }
-
-  .intro {
-    padding-inline: 0;
-  }
-
-  .intro h1 {
-    font-size: 27px;
-    line-height: 1.15;
-  }
-
-  .intro p {
-    font-size: 14px;
   }
 
   .panel {

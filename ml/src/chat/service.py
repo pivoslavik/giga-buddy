@@ -62,11 +62,13 @@ class ChatService:
     async def stream_reply(
         self, user_id: int, message_id: int
     ) -> AsyncGenerator[str, None]:
-        messages, reply = await self._prepare_messages(user_id, message_id)
+        messages, reply = await self._prepare_messages(
+            user_id, message_id, stream_final=True
+        )
         return self._stream_reply(messages, reply)
 
     async def _prepare_messages(
-        self, user_id: int, message_id: int
+        self, user_id: int, message_id: int, *, stream_final: bool = False
     ) -> tuple[list[ChatCompletionMessageParam], str | None]:
         history = await self.store.get_history(
             user_id, message_id, limit=self.messages_to_context
@@ -130,7 +132,9 @@ class ChatService:
             return messages, None
         try:
             async with self.buddy_mcp.connect(user_id) as session:
-                reply = await self.model_api.collect_tool_results(messages, session)
+                reply = await self.model_api.collect_tool_results(
+                    messages, session, stream_final=stream_final
+                )
         except (*UPSTREAM_ERRORS, ExceptionGroup) as exc:
             raise ModelAPIError("MCP tool selection failed") from exc
         return messages, reply

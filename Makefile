@@ -4,9 +4,6 @@
 up:
 	docker compose up -d --build
 
-demo:
-	docker compose --profile mcp-demo up -d --build
-
 down:
 	docker compose down
 

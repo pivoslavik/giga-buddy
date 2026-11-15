@@ -150,6 +150,7 @@ def test_stream_uses_tool_reply_or_model(chat, reply):
     assert asyncio.run(run()) == ([reply] if reply else ["Часть", " ответа"])
     service.buddy_mcp.connect.assert_called_once_with(7)
     assert model.collect_tool_results.await_args.args[1] is session
+    assert model.collect_tool_results.await_args.kwargs == {"stream_final": True}
     assert model.stream.call_count == (0 if reply else 1)
 
 

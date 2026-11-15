@@ -47,7 +47,11 @@ class ModelAPIManager:
         self.chat_model = chat_model
 
     async def collect_tool_results(
-        self, messages: list[ChatCompletionMessageParam], session: ClientSession
+        self,
+        messages: list[ChatCompletionMessageParam],
+        session: ClientSession,
+        *,
+        stream_final: bool = False,
     ) -> str | None:
         tools: list[ChatCompletionToolParam] = [
             {
@@ -81,6 +85,9 @@ class ModelAPIManager:
                 raise ModelAPIError("Missing tool selection choice")
             message = response.choices[0].message
             if not message.tool_calls:
+                if stream_final:
+                    # The stream call uses the same history and tool results.
+                    return None
                 return (
                     message.content
                     if message.content and message.content.strip()

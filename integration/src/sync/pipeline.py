@@ -1,4 +1,5 @@
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from src.db import Database
 from src.loader.google_drive import GoogleDocumentLoader
@@ -16,9 +17,12 @@ def get_sync_request(
     documents_dir: Path,
     document: ChangedDocument,
 ) -> DocumentSyncRequest:
-    document_path = documents_dir / document.name
-    loader.load_document(document.drive_id, document_path)
-    document_text = read_document(document_path)
+    documents_dir.mkdir(parents=True, exist_ok=True)
+    # Drive names and IDs are metadata, never local filesystem paths.
+    with TemporaryDirectory(prefix="drive-", dir=documents_dir) as download_dir:
+        document_path = Path(download_dir) / "document.txt"
+        loader.load_document(document.drive_id, document_path)
+        document_text = read_document(document_path)
     model_response: ModelResponse = model.send_prompt(document_text)
     request = DocumentSyncRequest(
         title=model_response.title,
