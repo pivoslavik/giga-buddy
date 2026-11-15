@@ -1,0 +1,8 @@
+[tool.pytest.ini_options]
+testpaths = ["ml/tests", "integration/tests"]
+pythonpath = [".", "integration"]
+addopts = "--cov-branch --cov-report=term-missing"
+
+[tool.coverage.report]
+include_namespace_packages = true
+precision = 2
