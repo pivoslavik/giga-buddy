@@ -23,6 +23,24 @@ describe("SSE framing", () => {
     expect(body.locked).toBe(false)
   })
 
+  it("follows the edge cases of the SSE field rules", async () => {
+    const text = [
+      // an event without data is not dispatched
+      "event: ping",
+      "",
+      // an id with NUL is ignored, a field without a colon has an empty value
+      "id: 1",
+      "id: 2\0",
+      "data",
+      "",
+    ].join("\n")
+    const receive = vi.fn()
+
+    await readEventStream(new Response(`${text}\n`).body!, receive)
+
+    expect(receive.mock.calls).toEqual([[{ type: "message", data: "", lastEventId: "1" }]])
+  })
+
   it("propagates read failures and releases the stream lock", async () => {
     const body = new ReadableStream<Uint8Array>({
       start(controller) {
