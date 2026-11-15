@@ -84,10 +84,10 @@ func (h *Handler) handleGetDocumentDetailed(c *gin.Context) {
 		log.Printf("handleGetDocumentDetailed: %v\n", err)
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{
-		"title":       document.Title,
-		"text":        document.Text,
-		"category":    string(document.Category),
+		"title":    document.Title,
+		"text":     document.Text,
+		"category": string(document.Category),
 	})
 }

@@ -6,12 +6,12 @@ import (
 )
 
 type Handler struct {
-	database        *db.Database
+	database *db.Database
 }
 
 func NewHandler(database *db.Database) Handler {
 	return Handler{
-		database:        database,
+		database: database,
 	}
 }
 
