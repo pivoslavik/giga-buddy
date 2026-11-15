@@ -148,12 +148,21 @@ describe("DocumentModal", () => {
 
     const alert = await within(dialog).findByRole("alert")
     expect(alert).toHaveTextContent("Не удалось загрузить документ")
+    // the card of the list still names the document
+    expect(within(dialog).getByRole("heading", { name: SETUP.title })).toBeVisible()
 
     fails = false
     await user.click(within(alert).getByRole("button", { name: "Попробовать ещё раз" }))
 
     expect(await within(dialog).findByText("Docker")).toBeVisible()
     expect(within(dialog).queryByRole("alert")).not.toBeInTheDocument()
+  })
+
+  it("calls a document that failed to load and is not in the list just «Документ»", async () => {
+    const { dialog } = await openDocument(5, () => status(500))
+
+    expect(await within(dialog).findByRole("alert")).toBeVisible()
+    expect(within(dialog).getByRole("heading", { name: "Документ" })).toBeVisible()
   })
 
   it("treats an answer without a text as a failure", async () => {

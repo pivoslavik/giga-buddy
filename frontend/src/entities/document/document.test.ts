@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest"
 import { json, mockApi } from "../../test/app"
-import { fetchDocument, findDocumentByTitle, type DocumentSummary } from "./document"
+import {
+  fetchDocument,
+  fetchDocuments,
+  findDocumentByTitle,
+  type DocumentSummary,
+} from "./document"
 
 const card = (id: number, title: string): DocumentSummary => ({
   id,
@@ -47,5 +52,19 @@ describe("fetchDocument", () => {
     mockApi({ "GET /api/documents/5": () => json(["Code review"]) })
 
     await expect(fetchDocument(5)).rejects.toThrow("Expected a document")
+  })
+
+  it("leaves the category empty when the backend sends none", async () => {
+    mockApi({ "GET /api/documents/5": () => json({ title: "Code review", text: "Текст" }) })
+
+    expect(await fetchDocument(5)).toMatchObject({ category: "" })
+  })
+})
+
+describe("fetchDocuments", () => {
+  it("rejects an answer that is not a list", async () => {
+    mockApi({ "GET /api/documents": () => json({ documents: [] }) })
+
+    await expect(fetchDocuments()).rejects.toThrow("Expected a list of documents")
   })
 })
