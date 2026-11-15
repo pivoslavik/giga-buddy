@@ -266,9 +266,10 @@ def test_chat_uses_requested_message_and_shared_model(indexing, stream):
         assert "id <= $2" in sql
         assert "LIMIT $3" in sql
         assert (user_id, message_id, limit) == (3, 12, 3)
-    sql, _, limit = pool.fetch.await_args.args
+    sql, _, limit, question = pool.fetch.await_args.args
     assert "LIMIT $2" in sql
     assert limit == 1
+    assert question == "Earlier message"
     loader.assert_called_once()
     assert model.encode.call_args_list[0].args == (["passage: Existing text."],)
     assert model.encode.call_args_list[1].args == (["query: Earlier message"],)

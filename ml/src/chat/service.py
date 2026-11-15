@@ -125,7 +125,7 @@ class ChatService:
 
         [embedding] = await self.embeddings.encode([question], prefix="query")
         chunks = await self.store.find_relevant_chunks(
-            embedding, limit=self.documents_to_context
+            embedding, limit=self.documents_to_context, question=question
         )
         messages = build_chat_messages(history, chunks)
         if self.buddy_mcp is None:
