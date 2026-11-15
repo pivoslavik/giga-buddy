@@ -20,7 +20,6 @@ func (h *Handler) handleGetChat(c *gin.Context) {
 		log.Printf("handleGetChat: %v\n", err)
 		return
 	}
-	log.Println(messages)
 
 	c.JSON(http.StatusOK, gin.H{
 		"messages": messages,
