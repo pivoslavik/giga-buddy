@@ -86,7 +86,6 @@ func (h *Handler) handleGetDocumentDetailed(c *gin.Context) {
 	}
 	
 	c.JSON(http.StatusOK, gin.H{
-		"id":          document.ID,
 		"title":       document.Title,
 		"text":        document.Text,
 		"category":    string(document.Category),
