@@ -5,11 +5,27 @@ from unittest.mock import Mock
 import numpy as np
 import pytest
 
+from ml.src.config import Config
 from ml.src.documents import embeddings
 
 
-def test_batch_is_normalized_and_model_is_reused(monkeypatch):
+@pytest.fixture
+def config_env(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "test-dsn")
+    monkeypatch.setenv("OPENAI_BASE_URL", "")
+    monkeypatch.setenv("OPENAI_API_KEY", "")
+    monkeypatch.setenv("OPENAI_CHAT_MODEL", "")
+    monkeypatch.setenv("MESSAGES_TO_CONTEXT", "10")
+    monkeypatch.setenv("DOCUMENTS_TO_CONTEXT", "5")
     monkeypatch.setenv("ML_INFERENCE_MAX_WAITING", "2")
+    monkeypatch.setenv("BUDDY_MCP_TOKEN", "")
+    monkeypatch.setenv("BUDDY_MCP_SUBMIT_TOKEN", "")
+    monkeypatch.setenv("BUDDY_MCP_URL", "")
+    monkeypatch.setenv("ML_MODEL_PATH", "test-model-path")
+
+
+def test_batch_is_normalized_and_model_is_reused(monkeypatch, config_env):
+    config = Config.from_env()
     model = Mock()
     load_model = Mock(return_value=model)
     monkeypatch.setattr(embeddings, "load_model", load_model)
@@ -23,7 +39,7 @@ def test_batch_is_normalized_and_model_is_reused(monkeypatch):
             return np.ones((len(passages), 384), dtype=np.float64)
 
         model.encode.side_effect = encode
-        service = await embeddings.Embeddings.load()
+        service = await embeddings.Embeddings.load(config)
         try:
             first, second = await asyncio.gather(
                 service.encode(["first", "second"]), service.encode(["third"])
@@ -35,7 +51,7 @@ def test_batch_is_normalized_and_model_is_reused(monkeypatch):
             await service.close()
 
     asyncio.run(run())
-    load_model.assert_called_once_with()
+    load_model.assert_called_once_with("test-model-path")
     assert model.encode.call_count == 2
     model.encode.assert_any_call(
         ["passage: first", "passage: second"], normalize_embeddings=True
@@ -232,10 +248,7 @@ def test_close_waits_for_active_worker_and_rejects_queued_work():
     asyncio.run(run())
 
 
-def test_invalid_configuration_fails_before_loading(monkeypatch):
+def test_invalid_inference_max_waiting(monkeypatch, config_env):
     monkeypatch.setenv("ML_INFERENCE_MAX_WAITING", "-1")
-    loader = Mock()
-    monkeypatch.setattr(embeddings, "load_model", loader)
-    with pytest.raises(ValueError):
-        asyncio.run(embeddings.Embeddings.load())
-    loader.assert_not_called()
+    with pytest.raises(ValueError, match="ML_INFERENCE_MAX_WAITING"):
+        Config.from_env()

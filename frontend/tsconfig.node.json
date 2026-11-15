@@ -19,5 +19,11 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts", "vite.config.test.ts", "mock"]
+  "include": [
+    "vite.config.ts",
+    "vite.config.test.ts",
+    "reactCompilerCoverage.ts",
+    "reactCompilerCoverage.test.ts",
+    "mock"
+  ]
 }

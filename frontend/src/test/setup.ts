@@ -1,3 +1,5 @@
+// first: react-dom, which @testing-library/react loads, looks for AnimationEvent once, on load
+import "./animationEvent"
 import "@testing-library/jest-dom/vitest"
 import { cleanup } from "@testing-library/react"
 import { afterEach } from "vitest"

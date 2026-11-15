@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { describe, expect, it } from "vitest"
 import {
   DOCUMENT_CATEGORIES,
+  DOCUMENT_CATEGORY_LABELS,
   DOCUMENTS_LIMIT,
   type DocumentSummary,
 } from "../../entities/document/document"
@@ -148,12 +149,41 @@ describe("KnowledgeBasePage", () => {
     expect(screen.getByRole("heading", { level: 2, name: "Разработка" })).toBeVisible()
     expect(await cardTitles()).toEqual(["Архитектура проекта", "Настройка окружения"])
     expect(screen.getByText("2 документа")).toBeVisible()
+
+    await user.click(categoryButton("Все документы"))
+
+    expect(categoryButton("Все документы")).toHaveAttribute("aria-pressed", "true")
+    expect(screen.getByRole("heading", { level: 2, name: "Все документы" })).toBeVisible()
+    expect(await cardTitles()).toHaveLength(DOCUMENTS.length)
   })
 
-  it("reverses the order of the documents", async () => {
+  it("orders the categories like the knowledge base does and marks every card with its own", async () => {
+    // one document of every category, in the reverse order
+    const documents = DOCUMENT_CATEGORIES.toReversed().map((category, index) => ({
+      id: 10 + index,
+      title: `Документ ${index}`,
+      description: "Описание.",
+      category,
+    }))
+    await renderKnowledgeBase("/knowledge-base", () => json(documents))
+    await cardTitles()
+
+    const categories = within(screen.getByRole("group", { name: "Категории" }))
+    expect(categories.getAllByRole("button").map((button) => button.textContent)).toEqual([
+      "Все документы",
+      ...DOCUMENT_CATEGORIES.map((category) => DOCUMENT_CATEGORY_LABELS[category]),
+    ])
+    for (const { title, category } of documents) {
+      const card = screen.getByRole("link", { name: title }).closest("li") as HTMLElement
+      expect(within(card).getByText(DOCUMENT_CATEGORY_LABELS[category])).toBeVisible()
+      expect(card.querySelector("svg")).toBeInTheDocument()
+    }
+  })
+
+  it("reverses the order of the documents and back", async () => {
     const user = userEvent.setup()
     await renderKnowledgeBase()
-    await cardTitles()
+    const ascending = await cardTitles()
 
     await user.click(screen.getByRole("button", { name: "По названию, от А до Я" }))
 
@@ -164,6 +194,10 @@ describe("KnowledgeBasePage", () => {
       "К кому обратиться",
       "Архитектура проекта",
     ])
+
+    await user.click(screen.getByRole("button", { name: "По названию, от Я до А" }))
+
+    expect(await cardTitles()).toEqual(ascending)
   })
 
   it("moves the focus to the search on Ctrl+K and ⌘K", async () => {

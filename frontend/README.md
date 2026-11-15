@@ -63,9 +63,22 @@ The mock is never part of the production build.
 | `npm run lint`     | ESLint                                        |
 | `npm run format`   | Prettier                                      |
 | `npm test`         | unit tests (Vitest + Testing Library, jsdom)  |
-| `npm run coverage` | tests with coverage, fails below 80% of lines |
+| `npm run coverage` | tests with coverage, fails below 90%          |
 
-The HTML coverage report is written to `coverage/index.html`.
+## Tests
+
+`npm run coverage` fails when statements, branches, functions or lines drop below 90%; CI runs
+it for every pull request into `main`. The HTML report is written to `coverage/index.html`.
+
+The tests run the code the way it ships, compiled by the React Compiler. The compiler wraps every
+value a component renders in a check of its memo cache, and the `else` of that check only runs
+when the component renders again with the same props, so it would count as a missed branch in
+almost every component. [reactCompilerCoverage.ts](reactCompilerCoverage.ts) leaves these checks
+out of the coverage, while the code the compiler moved inside them is still counted.
+
+jsdom lacks a few browser APIs the app uses: [src/test/setup.ts](src/test/setup.ts) adds the modal
+`<dialog>` and `AnimationEvent`, and the tests stub `matchMedia`, `requestAnimationFrame` and
+`Element.animate` where they need them.
 
 ## Structure
 
