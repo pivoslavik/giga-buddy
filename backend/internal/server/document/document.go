@@ -16,6 +16,6 @@ func NewHandler(database *db.Database) Handler {
 }
 
 func (h *Handler) RegisterRoutes(protectedAPI *gin.RouterGroup) {
-	protectedAPI.GET("/document", h.handleGetDocumentsList)
+	protectedAPI.GET("/documents", h.handleGetDocumentsList)
 	protectedAPI.GET("/documents/:id", h.handleGetDocumentDetailed)
 }
