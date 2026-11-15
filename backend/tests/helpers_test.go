@@ -17,6 +17,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pivoslavik/giga-buddy/backend/internal/db"
+	documents "github.com/pivoslavik/giga-buddy/backend/internal/db/document"
 	"github.com/pivoslavik/giga-buddy/backend/internal/db/messages"
 	refreshsessions "github.com/pivoslavik/giga-buddy/backend/internal/db/refresh_sessions"
 	"github.com/pivoslavik/giga-buddy/backend/internal/db/users"
@@ -99,7 +100,9 @@ func newFixture(t *testing.T) *fixture {
 	must(t, err)
 	t.Cleanup(pool.Close)
 	for _, migration := range []string{
+		"000001_create_documents.up.sql",
 		"000002_create_users.up.sql", "000003_create_messages.up.sql",
+		"000005_add_google_id_google_timestamp.up.sql",
 		"000006_create_auth_refresh_sessions.up.sql", "000007_add_user_role_enum.up.sql",
 		"000008_messages_add_created_at.up.sql",
 	} {
@@ -110,7 +113,7 @@ func newFixture(t *testing.T) *fixture {
 	}
 	f := &fixture{pool: pool, url: u.String(), db: &db.Database{
 		Users: users.NewQueries(pool), RefreshSessions: refreshsessions.NewQueries(pool),
-		Messages: messages.NewQueries(pool),
+		Messages: messages.NewQueries(pool), Documents: documents.NewQueries(pool),
 	}}
 	hash, err := bcrypt.GenerateFromPassword([]byte("correct-password"), bcrypt.MinCost)
 	must(t, err)

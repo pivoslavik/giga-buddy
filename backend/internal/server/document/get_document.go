@@ -18,7 +18,7 @@ func (h *Handler) handleGetDocumentsList(c *gin.Context) {
 	value, exists := c.GetQuery("amount")
 	if !exists {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": apperrors.ErrAmountRequired,
+			"error": apperrors.ErrAmountRequired.Error(),
 		})
 		return
 	}
@@ -26,7 +26,7 @@ func (h *Handler) handleGetDocumentsList(c *gin.Context) {
 	amount, err := strconv.Atoi(value)
 	if err != nil || amount < 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": apperrors.ErrInvalidAmountType,
+			"error": apperrors.ErrInvalidAmountType.Error(),
 		})
 		return
 	}
@@ -34,7 +34,7 @@ func (h *Handler) handleGetDocumentsList(c *gin.Context) {
 	values := c.QueryArray("category")
 	if len(values) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": apperrors.ErrCategoriesRequired,
+			"error": apperrors.ErrCategoriesRequired.Error(),
 		})
 		return
 	}
@@ -44,7 +44,7 @@ func (h *Handler) handleGetDocumentsList(c *gin.Context) {
 	for i, category := range values {
 		if err := documentmodel.CheckDocumentCategory(category); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
-				"error": fmt.Errorf("%w: %s", apperrors.ErrInvalidCategory, category),
+				"error": fmt.Sprintf("%s: %s", apperrors.ErrInvalidCategory, category),
 			})
 			return
 		}
@@ -68,7 +68,7 @@ func (h *Handler) handleGetDocumentDetailed(c *gin.Context) {
 	intValue, err := strconv.ParseInt(value, 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": apperrors.ErrInvalidID,
+			"error": apperrors.ErrInvalidID.Error(),
 		})
 		return
 	}
