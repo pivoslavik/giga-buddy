@@ -1,135 +1,154 @@
-# AI Buddy — frontend
+# AI Buddy — фронтенд
 
-React 19 + TypeScript + Vite, routing on TanStack Router, server state on TanStack Query.
+Фронтенд на React 19, TypeScript и Vite. За маршруты отвечает TanStack Router,
+за данные с сервера — TanStack Query.
 
-## Getting started
+[Схема архитектуры приложения](../README.md#архитектура).
+
+## Локальный запуск
 
 ```bash
 npm ci
 npm run dev
 ```
 
-The frontend calls the API on its own origin, and every `/api/*` request is proxied to the backend
-with its method, path, query, headers, cookies and body:
+Браузер обращается к API на том же адресе, с которого загружен интерфейс.
+Прокси пересылает запросы `/api/*` вместе с методом, путём, параметрами,
+заголовками, cookies и телом.
 
-- `npm run dev` and `npm run preview` proxy it to `API_PROXY_TARGET` (`http://localhost`, port 80,
-  by default: nginx from `docker compose up`, which forwards to `backend:8080`). They add
-  `X-Forwarded-*` headers and drop the `Domain` of the cookies the backend sets, so the browser
-  keeps them for the dev host.
-- in docker compose and production, nginx ([nginx/default.conf](../nginx/default.conf)) proxies it
-  to `backend:8080` and passes the address of the browser in `X-Real-IP` and `X-Forwarded-For`.
+- `npm run dev` и `npm run preview` направляют запросы на `API_PROXY_TARGET`.
+  По умолчанию это `http://localhost` на порту 80, где nginx из `docker compose up`
+  пересылает их на `backend:8080`. Vite добавляет заголовки `X-Forwarded-*` и
+  убирает атрибут `Domain` из cookies, чтобы браузер сохранил их для адреса
+  локального сервера разработки.
+- В Docker Compose nginx направляет запросы на `backend:8080` и передаёт адрес
+  клиента в `X-Real-IP` и `X-Forwarded-For`. [Конфигурация nginx](../nginx/default.conf).
 
-To work against a backend started locally, create `.env.local`:
+Для работы с backend, запущенным локально, создайте `.env.local`:
 
 ```bash
 API_PROXY_TARGET=http://localhost:8080
 ```
 
-See [.env.example](.env.example) for all variables. `VITE_API_URL` is only needed when the static
-frontend is hosted on another origin than the API.
+Все переменные перечислены в [шаблоне окружения](.env.example).
+`VITE_API_URL` нужен, если статический фронтенд и API размещены на разных адресах.
 
-### Without a backend
+### Запуск без backend
 
-`npm run dev:mock` starts the same dev server, but `/api` is answered by a fake backend from
-[mock/mockApi.ts](mock/mockApi.ts) instead of the proxy, so the whole login flow works without
-docker compose:
+`npm run dev:mock` запускает сервер разработки с имитацией API. В этом режиме
+можно проверить весь процесс входа без Docker Compose. [Код имитации API](mock/mockApi.ts).
 
-| Login    | Password | Result                                         |
-| -------- | -------- | ---------------------------------------------- |
-| `intern` | `secret` | logs in as «Аня» and opens the main page       |
-| `down`   | any      | the backend fails with `500`                   |
-| other    | any      | `400`, the form says the credentials are wrong |
+| Логин    | Пароль   | Результат                                              |
+| -------- | -------- | ------------------------------------------------------ |
+| `intern` | `secret` | Вход под именем «Аня» и переход на главную             |
+| `down`   | любой    | API возвращает ошибку `500`                            |
+| другой   | любой    | API возвращает `400`, форма сообщает о неверных данных |
 
-Like the backend, the mock sets an `access_token` cookie for 15 minutes and a `refresh_token`
-cookie for a week, and swaps the refresh token for a new pair on `POST /api/auth/refresh`. To see
-the refresh without waiting, shorten the access token in `.env.mock.local`:
+Имитация выдаёт cookie `access_token` на 15 минут и `refresh_token` на неделю.
+При `POST /api/auth/refresh` она выдаёт новую пару токенов. Чтобы проверить
+обновление быстрее, сократите срок жизни токена доступа в `.env.mock.local`:
 
 ```bash
 MOCK_ACCESS_TOKEN_TTL_SECONDS=20
 ```
 
-Tokens are kept in memory until the dev server restarts; log out from the avatar menu in the
-header. The knowledge base lists the documents of [mock/mockDocuments.ts](mock/mockDocuments.ts).
-The mock is never part of the production build.
+Токены хранятся в памяти до перезапуска сервера разработки. Выйти можно через
+меню аватара в шапке. База знаний показывает [тестовые документы](mock/mockDocuments.ts).
+Имитация API используется только при разработке.
 
-## Scripts
+## Команды
 
-| Command            | What it does                                  |
-| ------------------ | --------------------------------------------- |
-| `npm run dev`      | dev server with HMR                           |
-| `npm run dev:mock` | dev server with the mock API instead of proxy |
-| `npm run build`    | type-check and production build into `dist/`  |
-| `npm run preview`  | serves `dist/` with the same `/api` proxy     |
-| `npm run lint`     | ESLint                                        |
-| `npm run format`   | Prettier                                      |
-| `npm test`         | unit tests (Vitest + Testing Library, jsdom)  |
-| `npm run coverage` | tests with coverage, fails below 90%          |
+| Команда            | Назначение                                            |
+| ------------------ | ----------------------------------------------------- |
+| `npm run dev`      | Сервер разработки с горячим обновлением               |
+| `npm run dev:mock` | Сервер разработки с имитацией API                     |
+| `npm run build`    | Проверка типов и сборка в `dist/`                     |
+| `npm run preview`  | Просмотр сборки из `dist/` с тем же прокси для `/api` |
+| `npm run lint`     | Проверка ESLint                                       |
+| `npm run format`   | Форматирование через Prettier                         |
+| `npm test`         | Тесты на Vitest и Testing Library в jsdom             |
+| `npm run coverage` | Тесты с отчётом о покрытии и порогом 90%              |
 
-## Tests
+## Тесты
 
-`npm run coverage` fails when statements, branches, functions or lines drop below 90%; CI runs
-it for every pull request into `main`. The HTML report is written to `coverage/index.html`.
+`npm run coverage` завершается ошибкой, если покрытие операторов, ветвей,
+функций или строк ниже 90%. CI запускает проверку для каждого pull request в
+`main`. HTML-отчёт сохраняется в `coverage/index.html`.
 
-The tests run the code the way it ships, compiled by the React Compiler. The compiler wraps every
-value a component renders in a check of its memo cache, and the `else` of that check only runs
-when the component renders again with the same props, so it would count as a missed branch in
-almost every component. [reactCompilerCoverage.ts](reactCompilerCoverage.ts) leaves these checks
-out of the coverage, while the code the compiler moved inside them is still counted.
+Тесты используют код, обработанный React Compiler, как и в итоговой сборке.
+Компилятор оборачивает значения, которые отображает компонент, в проверки
+кэша. Ветка `else` такой проверки выполняется только при повторном рендере
+с теми же свойствами. Скрипт исключает сгенерированные проверки из отчёта,
+а прикладной код внутри них по-прежнему учитывается. [Код обработки покрытия](reactCompilerCoverage.ts).
 
-jsdom lacks a few browser APIs the app uses: [src/test/setup.ts](src/test/setup.ts) adds the modal
-`<dialog>` and `AnimationEvent`, and the tests stub `matchMedia`, `requestAnimationFrame` and
-`Element.animate` where they need them.
+В jsdom часть браузерных API добавляет [настройка тестов](src/test/setup.ts),
+включая модальный `<dialog>` и `AnimationEvent`. Там, где это нужно, тесты
+подменяют `matchMedia`, `requestAnimationFrame` и `Element.animate`.
 
-## Structure
+## Структура
 
-```
+```text
 src/
-  router.ts        routes and session guards
-  pages/           route components (landing, home, ...) and the layout of the app pages
-  widgets/         blocks shared by pages: the header
-  features/        user scenarios (auth, ...)
-  entities/        domain data and its queries (session, document)
-  shared/api/      fetch wrapper for the backend
-  shared/ui/       reusable components: Button, Modal, Logo, Avatar, PageTitle, icons
-  index.css        design tokens and global styles
+  router.ts        маршруты и проверки сессии
+  pages/           страницы и общий каркас приложения
+  widgets/         общие блоки страниц, например шапка
+  features/        пользовательские сценарии, например вход
+  entities/        данные и запросы для сессии и документов
+  shared/api/      обёртка над fetch для вызовов backend
+  shared/ui/       общие компоненты Button, Modal, Logo, Avatar, PageTitle и иконки
+  index.css        переменные оформления и глобальные стили
 ```
 
-## Auth and routing
+## Авторизация и маршрутизация
 
-The backend keeps the session in httpOnly cookies, so the frontend learns about it from
-`GET /api/user`: a user means a session, `401`/`403` (or an unavailable backend) means a guest.
+Backend хранит сессию в cookies с атрибутом `HttpOnly`. Фронтенд проверяет
+сессию через `GET /api/user`. Ответ с профилем означает активную сессию.
+При `401`, `403` или недоступности backend интерфейс считает пользователя гостем.
 
-- `/welcome` — landing page for guests; users with a session are redirected to `/`.
-- every other page lives under the pathless `authenticated` route, which sends guests to `/welcome`
-  and renders the page under the app header (`/`, `/profile`, `/chat`, `/knowledge-base`).
+- `/welcome` — страница для гостей. Пользователь с сессией переходит на `/`.
+- `/`, `/profile`, `/chat` и `/knowledge-base` вложены в маршрут
+  `authenticated` без собственного пути. Он перенаправляет гостей на
+  `/welcome` и показывает остальным страницы с общей шапкой.
 
-The login modal on the landing page sends `{ "username", "password" }` to `POST /api/auth/login`.
-When the backend accepts them, the session is re-read and the user lands on `/`; `400`/`401` is
-shown as wrong credentials, anything else as "try again later".
+Форма входа отправляет поля `username` и `password` на `POST /api/auth/login`.
+При успехе фронтенд перечитывает сессию и открывает `/`. Для `400` и `401`
+форма сообщает о неверных данных, для остальных ошибок предлагает попробовать позже.
 
-The access token lives 15 minutes and the refresh token a week. When a request gets `401`,
-`apiFetch` calls `POST /api/auth/refresh` and sends the request once more; requests that fail
-together share one refresh. If the refresh fails too, the `401` stands and the session is over, so
-a page load lands on `/welcome`. Login and refresh answers are never retried: there a `401` means
-wrong credentials or no session at all. Logout is, like any other request: after 15 idle minutes
-its access token may be stale while the session still lives.
+Токен доступа действует 15 минут, токен обновления — неделю. Получив `401`,
+`apiFetch` вызывает `POST /api/auth/refresh` и один раз повторяет запрос.
+Параллельные запросы используют одну попытку обновления. Если она завершилась
+ошибкой, `401` передаётся вызывающему коду, а при загрузке страницы пользователь
+попадает на `/welcome`. У запросов входа и обновления токена свой смысл
+`401`, поэтому они исключены из этого механизма. При выходе действует общее
+правило, в том числе если токен доступа истёк после простоя.
 
-"Выйти из аккаунта" in the avatar menu of the header sends `POST /api/auth/logout`: only the
-backend can expire the httpOnly cookies. The session is re-read, and once it is gone the user lands
-on `/welcome`; if it is still there, the menu says logging out failed.
+Пункт «Выйти из аккаунта» в меню аватара вызывает `POST /api/auth/logout`.
+Backend удаляет cookies сессии. Фронтенд повторно проверяет сессию,
+перенаправляет на `/welcome` или показывает ошибку, если сессия сохранилась.
 
-After logging in or out, call `refetchSession(queryClient)` so the guards see the new state.
-Invalidating the query is not enough: the guards use `ensureQueryData`, which keeps returning the
-cached value of a query nothing subscribes to.
+После входа и выхода вызывается `refetchSession(queryClient)`. Простая
+инвалидация запроса здесь недостаточна, поскольку проверки маршрутов используют
+`ensureQueryData`, который может вернуть сохранённое значение без нового запроса.
 
-## Knowledge base
+## База знаний
 
-`/knowledge-base` lists the documents from `GET /api/documents?amount=…&category=…` (#13). The
-backend wants `amount` and at least one `category`, and it can neither search nor skip documents,
-so the page asks once for the first 20 documents of every category. The search by title and
-description, the filter by category and the sorting by title run in the browser on them: switching
-them needs no request.
+Страница `/knowledge-base` получает список через
+`GET /api/documents?amount=…&category=…`. API требует `amount` и хотя бы
+одну `category`. Страница запрашивает первые 20 документов одним запросом
+со всеми категориями. Поиск по названию и описанию, фильтр по категории
+и сортировка по названию применяются к полученному списку в браузере.
 
-A card is a link to `/knowledge-base?doc=<id>`, which opens the document in a modal over the list,
-so a document can be opened in a new tab or shared. Closing it opened from the list goes back in
-history; opened by its link, the list takes its place.
+Карточка ведёт на `/knowledge-base?doc=<id>` и открывает документ в окне
+поверх списка. Этой ссылкой можно поделиться или открыть её в новой вкладке.
+Если окно открыли из списка, закрытие возвращает к предыдущей записи истории.
+При прямом переходе по ссылке закрытие заменяет адрес на страницу списка.
+
+## Чат
+
+Страница `/chat` загружает историю через `GET /api/chat` и отправляет сообщение
+через `POST /api/chat`. Браузер постепенно показывает фрагменты SSE-событий
+`token` в одном сообщении. Событие `done` содержит итоговый текст, после чего
+фронтенд обновляет историю. [Как ML генерирует ответы и вызывает MCP](../ml/README.md).
+
+В Docker Compose фронтенд собирается в общий том `frontend_static`, откуда
+сборку раздаёт [nginx](../nginx/README.md).
