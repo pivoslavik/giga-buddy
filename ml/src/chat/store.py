@@ -47,17 +47,30 @@ class ChatStore:
         return [ChatMessage(row["role"], row["text"]) for row in reversed(rows)]
 
     async def find_relevant_chunks(
-        self, embedding: NDArray, *, limit: int
+        self, embedding: NDArray, *, limit: int, question: str = ""
     ) -> list[tuple[int, str]]:
         try:
             rows = await self.pool.fetch(
                 """
-                SELECT id, content FROM document_chunks
-                ORDER BY embedding <=> $1::vector, id
+                WITH terms AS (
+                    SELECT term
+                    FROM unnest(tsvector_to_array(to_tsvector('russian', $3))) AS term
+                    WHERE length(term) >= 4
+                )
+                SELECT id, content
+                FROM document_chunks
+                ORDER BY (
+                    1 - (embedding <=> $1::vector) / 2
+                    + 0.3 * COALESCE((
+                        SELECT avg((strpos(lower(content), term) > 0)::int)
+                        FROM terms
+                    ), 0)
+                ) DESC, id
                 LIMIT $2
                 """,
                 embedding,
                 limit,
+                question,
             )
         except DATABASE_ERRORS as exc:
             raise DatabaseError("Could not load relevant chunks") from exc

@@ -42,7 +42,7 @@ def test_reply_uses_ordered_history_and_relevant_chunks(chat):
     embeddings.encode.assert_awaited_once_with(["Вопрос"], prefix="query")
     history_call, chunks_call = pool.fetch.await_args_list
     assert history_call.args[1:] == (7, 20, 3)
-    assert chunks_call.args[1:] == ([0.5], 2)
+    assert chunks_call.args[1:] == ([0.5], 2, "Вопрос")
     messages = model.generate_reply.await_args.args[0]
     assert [message["role"] for message in messages] == [
         "system",
